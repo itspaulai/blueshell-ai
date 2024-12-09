@@ -9,7 +9,7 @@ export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      content: "Hello! How can I help you today?",
+      content: "Hello",
       isUser: false,
       timestamp: new Date().toLocaleTimeString(),
     },
@@ -49,25 +49,26 @@ export function ChatContainer() {
   }, [messages]);
 
   return (
-    <Card className="border-2">
-      <CardHeader>
-        <CardTitle className="text-center text-primary">Chatbot</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[500px] pr-4" ref={scrollRef}>
-          {messages.map((message) => (
-            <ChatBubble
-              key={message.id}
-              message={message.content}
-              isUser={message.isUser}
-              timestamp={message.timestamp}
-            />
-          ))}
+    <div className="flex flex-col h-screen">
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full px-4" ref={scrollRef}>
+          <div className="max-w-3xl mx-auto py-6">
+            {messages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                message={message.content}
+                isUser={message.isUser}
+                timestamp={message.timestamp}
+              />
+            ))}
+          </div>
         </ScrollArea>
-        <div className="mt-4">
+      </div>
+      <div className="border-t bg-white p-4">
+        <div className="max-w-3xl mx-auto">
           <ChatInput onSend={handleSendMessage} />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
