@@ -32,8 +32,8 @@ export function ChatInput({ onSend }: ChatInputProps) {
           className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 bg-transparent h-10 text-base"
         />
       </div>
-      <Button type="submit" size="icon" disabled={!message.trim()}>
-        <SendIcon className="h-4 w-4" />
+      <Button type="submit" size="icon" disabled={!message.trim()} className="h-12 w-12">
+        <SendIcon className="h-5 w-5" />
         <span className="sr-only">Send message</span>
       </Button>
     </form>
