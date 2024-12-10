@@ -20,8 +20,8 @@ export function ChatInput({ onSend }: ChatInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
-      <div className="flex-1 flex items-center gap-2 rounded-lg border bg-background px-3">
-        <Button type="button" variant="ghost" size="icon" className="h-9 w-9">
+      <div className="flex-1 flex items-center gap-2 rounded-lg bg-gray-50/50 px-3">
+        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
           <PaperclipIcon className="h-4 w-4" />
           <span className="sr-only">Attach file</span>
         </Button>
@@ -29,7 +29,7 @@ export function ChatInput({ onSend }: ChatInputProps) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 border-0 focus-visible:ring-0 px-0"
+          className="flex-1 border-0 focus-visible:ring-0 px-0 bg-transparent"
         />
       </div>
       <Button type="submit" size="icon" disabled={!message.trim()}>
