@@ -22,7 +22,7 @@ export function ChatBubble({ message, isUser, timestamp }: ChatBubbleProps) {
             : "bg-muted text-muted-foreground"
         )}
       >
-        <p className="text-sm">{message}</p>
+        <p className="text-base">{message}</p>
       </div>
     </div>
   );
