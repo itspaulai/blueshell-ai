@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 
 interface ChatBubbleProps {
@@ -6,24 +7,20 @@ interface ChatBubbleProps {
   timestamp: string;
 }
 
-export function ChatBubble({ message, isUser, timestamp }: ChatBubbleProps) {
-  return (
-    <div
-      className={cn(
-        "mb-4 flex animate-in fade-in slide-in-from-bottom-4",
-        isUser ? "justify-end" : "justify-start"
-      )}
-    >
-      <div
-        className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-2",
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-muted-foreground"
-        )}
-      >
-        <p className="text-base">{message}</p>
+export function ChatBubble({ message, isUser }: ChatBubbleProps) {
+  if (isUser) {
+    return (
+      <div className="mb-4 flex justify-end animate-in fade-in slide-in-from-bottom-4">
+        <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-primary text-primary-foreground">
+          <p className="text-base">{message}</p>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="mb-4 animate-in fade-in slide-in-from-bottom-4">
+      <p className="text-base text-foreground pr-8">{message}</p>
     </div>
   );
 }
