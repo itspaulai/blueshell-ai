@@ -28,23 +28,23 @@ export default function ChatPage() {
             {isSidebarOpen ? (
               <>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
                   Newsletter
                 </Button>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
                   Build Modern Chatbot
                 </Button>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
                   Create Modern Tortoise App
                 </Button>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
                   Trash Reminder Request
                 </Button>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
                   Song Identification Request
                 </Button>
               </>
