@@ -64,7 +64,7 @@ export function ChatContainer() {
           </div>
         </ScrollArea>
       </div>
-      <div className="bg-white p-4">
+      <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
           <ChatInput onSend={handleSendMessage} />
         </div>
