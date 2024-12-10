@@ -23,14 +23,6 @@ export function ChatBubble({ message, isUser, timestamp }: ChatBubbleProps) {
         )}
       >
         <p className="text-sm">{message}</p>
-        <p
-          className={cn(
-            "mt-1 text-xs opacity-70",
-            isUser ? "text-primary-foreground" : "text-muted-foreground"
-          )}
-        >
-          {timestamp}
-        </p>
       </div>
     </div>
   );
