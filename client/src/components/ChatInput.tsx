@@ -20,9 +20,9 @@ export function ChatInput({ onSend }: ChatInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2">
-      <div className="flex-1 flex items-center gap-2 rounded-lg bg-[#f1f4f9] px-4 h-12">
-        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
-          <PaperclipIcon className="h-6 w-6" />
+      <div className="flex-1 flex items-center gap-2 rounded-lg bg-[#f1f4f9] px-2 h-12">
+        <Button type="button" variant="ghost" size="icon" className="h-10 w-10">
+          <PaperclipIcon className="h-7 w-7" />
           <span className="sr-only">Attach file</span>
         </Button>
         <Input
