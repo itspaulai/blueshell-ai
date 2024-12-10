@@ -28,23 +28,23 @@ export default function ChatPage() {
             {isSidebarOpen ? (
               <>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
                   Newsletter
                 </Button>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
                   Build Modern Chatbot
                 </Button>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
                   Create Modern Tortoise App
                 </Button>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
                   Trash Reminder Request
                 </Button>
                 <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1.5 flex-shrink-0 relative top-[1px]" />
+                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
                   Song Identification Request
                 </Button>
               </>
