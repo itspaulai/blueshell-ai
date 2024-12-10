@@ -11,11 +11,11 @@ export default function ChatPage() {
       {/* Sidebar */}
       <div className={`${
         isSidebarOpen ? "w-[260px]" : "w-[60px]"
-      } bg-gray-50 p-4 flex flex-col transition-all duration-300 ease-in-out`}>
+      } bg-[#f1f4f9] p-4 flex flex-col transition-all duration-300 ease-in-out`}>
         <div className="flex items-center justify-between mb-4">
           <h1 className={`text-xl font-semibold ${!isSidebarOpen && "hidden"}`}>Blueshell</h1>
           <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-            <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${!isSidebarOpen && "rotate-180"}`} />
+            <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${isSidebarOpen ? "rotate-90" : "-rotate-90"}`} />
           </Button>
         </div>
         <Button className={`flex gap-2 mb-4 ${!isSidebarOpen && "px-0 justify-center"}`}>
