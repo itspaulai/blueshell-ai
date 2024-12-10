@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChatContainer } from "@/components/ChatContainer";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ChevronDownIcon, HelpCircleIcon } from "lucide-react";
+import { PlusIcon, ChevronDownIcon, HelpCircleIcon, MessageCircleIcon } from "lucide-react";
 
 export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -27,10 +27,22 @@ export default function ChatPage() {
           <div className="space-y-1">
             {isSidebarOpen ? (
               <>
-                <Button variant="ghost" className="w-full justify-start text-sm">Newsletter</Button>
-                <Button variant="ghost" className="w-full justify-start text-sm">Build Modern Chatbot</Button>
-                <Button variant="ghost" className="w-full justify-start text-sm">Create Modern Tortoise App</Button>
-                <Button variant="ghost" className="w-full justify-start text-sm">Trash Reminder Request</Button>
+                <Button variant="ghost" className="w-full justify-start text-sm gap-2">
+                  <MessageCircleIcon className="h-4 w-4" />
+                  Newsletter
+                </Button>
+                <Button variant="ghost" className="w-full justify-start text-sm gap-2">
+                  <MessageCircleIcon className="h-4 w-4" />
+                  Build Modern Chatbot
+                </Button>
+                <Button variant="ghost" className="w-full justify-start text-sm gap-2">
+                  <MessageCircleIcon className="h-4 w-4" />
+                  Create Modern Tortoise App
+                </Button>
+                <Button variant="ghost" className="w-full justify-start text-sm gap-2">
+                  <MessageCircleIcon className="h-4 w-4" />
+                  Trash Reminder Request
+                </Button>
                 <Button variant="ghost" className="w-full justify-start text-sm">Song Identification Request</Button>
               </>
             ) : null}
