@@ -6,7 +6,7 @@ import {
 } from "@huggingface/transformers";
 
 class TextGenerationPipeline {
-  static model_id = "onnx-community/Phi-3.5-mini-instruct-onnx-web";
+  static model_id = "onnx-community/Llama-3.2-3B-Instruct";
 
   static async getInstance(progress_callback = null) {
     this.tokenizer ??= AutoTokenizer.from_pretrained(this.model_id, {
@@ -15,7 +15,7 @@ class TextGenerationPipeline {
 
     this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
       dtype: "q4f16",
-      device: "webgpu",
+      device: "auto",
       use_external_data_format: true,
       progress_callback,
     });
