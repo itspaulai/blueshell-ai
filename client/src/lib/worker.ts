@@ -7,26 +7,36 @@ import {
 } from "@huggingface/transformers";
 
 class TextGenerationPipeline {
-  // Using Llama-3.2-3B-Instruct model for enhanced responses
-  static model_id = "onnx-community/Llama-3.2-3B-Instruct"; 
-  static tokenizer: any;
-  static model: any;
+  static model_id = "onnx-community/Llama-3.2-3B-Instruct";
+  static tokenizer: any = null;
+  static model: any = null;
+  static isLoading = false;
 
   static async getInstance(progress_callback?: ProgressCallback) {
-    if (!this.tokenizer) {
-      this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
-        progress_callback,
-      });
+    if (this.isLoading) {
+      throw new Error("Model is already loading");
     }
 
-    if (!this.model) {
-      this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
-        device: 'auto',
-        progress_callback,
-      });
-    }
+    try {
+      this.isLoading = true;
 
-    return [this.tokenizer, this.model];
+      if (!this.tokenizer) {
+        this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
+          progress_callback,
+        });
+      }
+
+      if (!this.model) {
+        this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
+          device: 'auto',
+          progress_callback,
+        });
+      }
+
+      return [this.tokenizer, this.model];
+    } finally {
+      this.isLoading = false;
+    }
   }
 }
 
@@ -98,20 +108,31 @@ async function generate(messages: any[]) {
 }
 
 async function load() {
+  if (TextGenerationPipeline.tokenizer && TextGenerationPipeline.model) {
+    self.postMessage({ status: "ready" });
+    return;
+  }
+
   self.postMessage({
     status: "loading",
-    data: "Initializing Llama-3.2-3B-Instruct model...",
+    data: "Downloading Llama-3.2-3B-Instruct model...",
   });
 
   try {
     const [tokenizer, model] = await TextGenerationPipeline.getInstance((x) => {
       if (x.status === "initiate") {
         self.postMessage({
-          ...x,
+          status: "initiate",
+          file: x.file,
           data: `Downloading ${x.file}...`,
         });
       } else if (x.status === "progress") {
-        self.postMessage(x);
+        self.postMessage({
+          status: "progress",
+          file: x.file,
+          progress: x.progress,
+          total: x.total
+        });
       }
     });
 
@@ -124,14 +145,11 @@ async function load() {
     const inputs = tokenizer("Hello");
     await model.generate({ ...inputs, max_new_tokens: 1 });
 
-    self.postMessage({ 
-      status: "ready",
-      data: "Model ready for chat!"
-    });
-  } catch (error) {
+    self.postMessage({ status: "ready" });
+  } catch (error: any) {
     self.postMessage({
       status: "error",
-      data: error.message
+      data: error?.message || "Failed to load model"
     });
   }
 }
@@ -146,6 +164,10 @@ self.addEventListener("message", async (e) => {
       break;
 
     case "generate":
+      if (!TextGenerationPipeline.tokenizer || !TextGenerationPipeline.model) {
+        // Load model if not already loaded
+        await load();
+      }
       stopping_criteria.reset();
       await generate(data);
       break;
