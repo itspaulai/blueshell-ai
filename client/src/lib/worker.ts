@@ -15,30 +15,18 @@ class TextGenerationPipeline {
   static model: any = null;
 
   static async getInstance(progress_callback: any = null) {
-    if (!this.tokenizer) {
-      self.postMessage({
-        status: "loading",
-        data: "Loading tokenizer...",
-      });
+    this.tokenizer ??= AutoTokenizer.from_pretrained(MODEL_ID, {
+      progress_callback,
+    });
 
-      this.tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, {
-        progress_callback,
-      });
-    }
+    this.model ??= AutoModelForCausalLM.from_pretrained(MODEL_ID, {
+      dtype: "q4f16",
+      device: "webgpu",
+      use_external_data_format: true,
+      progress_callback,
+    });
 
-    if (!this.model) {
-      self.postMessage({
-        status: "loading",
-        data: "Loading model...",
-      });
-
-      this.model = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
-        device: 'auto',
-        progress_callback,
-      });
-    }
-
-    return [this.tokenizer, this.model];
+    return Promise.all([this.tokenizer, this.model]);
   }
 }
 
@@ -97,9 +85,9 @@ async function generate(messages: any[]) {
 
     const streamer = new TextStreamer(tokenizer, {
       skip_prompt: true,
-      skip_special_tokens: true,
       callback_function,
       token_callback_function,
+      decode_kwargs: { skip_special_tokens: true }
     });
 
     self.postMessage({ status: "start" });
@@ -135,11 +123,29 @@ async function generate(messages: any[]) {
 }
 
 // Handle messages from the main thread
+async function check() {
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+      throw new Error("WebGPU is not supported (no adapter found)");
+    }
+  } catch (e) {
+    self.postMessage({
+      status: "error",
+      data: e.toString(),
+    });
+  }
+}
+
 self.addEventListener("message", async (e) => {
   const { type, data } = e.data;
 
   try {
     switch (type) {
+      case "check":
+        check();
+        break;
+
       case "load":
         // Load both tokenizer and model
         const [tokenizer, model] = await TextGenerationPipeline.getInstance((x: any) => {
