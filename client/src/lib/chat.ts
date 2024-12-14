@@ -1,14 +1,12 @@
 
-import { Worker } from 'web-workers';
-
-export interface Message {
+interface Message {
   id: number;
   content: string;
   isUser: boolean;
   timestamp: string;
 }
 
-export interface ModelStatus {
+interface ModelStatus {
   status: 'loading' | 'progress' | 'ready' | 'error';
   data?: string;
   file?: string;
@@ -24,10 +22,10 @@ export function initializeWorker(
   onComplete: () => void
 ) {
   if (!worker) {
-    worker = new Worker(new URL('./worker.ts', import.meta.url));
+    worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
     
-    worker.onmessage = (e) => {
-      const { status, data, output, file, progress, total } = e.data;
+    worker.onmessage = (event: MessageEvent) => {
+      const { status, data, output, file, progress, total } = event.data;
       
       if (status === 'update' && output) {
         onUpdate(output);
