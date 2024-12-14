@@ -7,8 +7,8 @@ import {
 } from "@huggingface/transformers";
 
 class TextGenerationPipeline {
-  // Using a smaller model for faster loading but still good quality
-  static model_id = "microsoft/phi-2"; 
+  // Using Llama-3.2-3B-Instruct model for enhanced responses
+  static model_id = "onnx-community/Llama-3.2-3B-Instruct"; 
   static tokenizer: any;
   static model: any;
 
@@ -21,6 +21,7 @@ class TextGenerationPipeline {
 
     if (!this.model) {
       this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
+        device: 'auto',
         progress_callback,
       });
     }
@@ -99,23 +100,40 @@ async function generate(messages: any[]) {
 async function load() {
   self.postMessage({
     status: "loading",
-    data: "Loading language model...",
+    data: "Initializing Llama-3.2-3B-Instruct model...",
   });
 
-  const [tokenizer, model] = await TextGenerationPipeline.getInstance((x) => {
-    self.postMessage(x);
-  });
+  try {
+    const [tokenizer, model] = await TextGenerationPipeline.getInstance((x) => {
+      if (x.status === "initiate") {
+        self.postMessage({
+          ...x,
+          data: `Downloading ${x.file}...`,
+        });
+      } else if (x.status === "progress") {
+        self.postMessage(x);
+      }
+    });
 
-  self.postMessage({
-    status: "loading",
-    data: "Warming up model...",
-  });
+    self.postMessage({
+      status: "loading",
+      data: "Preparing model for inference...",
+    });
 
-  // Warm up the model
-  const inputs = tokenizer("Hello");
-  await model.generate({ ...inputs, max_new_tokens: 1 });
+    // Warm up the model
+    const inputs = tokenizer("Hello");
+    await model.generate({ ...inputs, max_new_tokens: 1 });
 
-  self.postMessage({ status: "ready" });
+    self.postMessage({ 
+      status: "ready",
+      data: "Model ready for chat!"
+    });
+  } catch (error) {
+    self.postMessage({
+      status: "error",
+      data: error.message
+    });
+  }
 }
 
 // Handle messages from the main thread
