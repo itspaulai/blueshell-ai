@@ -5,11 +5,12 @@ import {
   InterruptableStoppingCriteria,
 } from "@huggingface/transformers";
 
+const MODEL_ID = "onnx-community/Llama-3.2-3B-Instruct";
+
 /**
  * This class uses the Singleton pattern to enable lazy-loading of the pipeline
  */
 class TextGenerationPipeline {
-  static model_id = "onnx-community/Llama-3.2-3B-Instruct";
   static tokenizer: any = null;
   static model: any = null;
 
@@ -17,10 +18,10 @@ class TextGenerationPipeline {
     if (!this.tokenizer) {
       self.postMessage({
         status: "loading",
-        data: "Downloading tokenizer...",
+        data: "Loading tokenizer...",
       });
 
-      this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
+      this.tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, {
         progress_callback,
       });
     }
@@ -28,10 +29,10 @@ class TextGenerationPipeline {
     if (!this.model) {
       self.postMessage({
         status: "loading",
-        data: "Downloading model...",
+        data: "Loading model...",
       });
 
-      this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
+      this.model = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
         device: 'auto',
         progress_callback,
       });
@@ -46,6 +47,7 @@ let past_key_values_cache: any = null;
 
 async function generate(messages: any[]) {
   try {
+    // Get the pipeline instance and pass the progress callback
     const [tokenizer, model] = await TextGenerationPipeline.getInstance((x: any) => {
       if (x.status === "initiate") {
         self.postMessage({
@@ -95,6 +97,7 @@ async function generate(messages: any[]) {
 
     const streamer = new TextStreamer(tokenizer, {
       skip_prompt: true,
+      skip_special_tokens: true,
       callback_function,
       token_callback_function,
     });
@@ -131,53 +134,6 @@ async function generate(messages: any[]) {
   }
 }
 
-async function load() {
-  if (TextGenerationPipeline.tokenizer && TextGenerationPipeline.model) {
-    self.postMessage({ status: "ready" });
-    return;
-  }
-
-  try {
-    const [tokenizer, model] = await TextGenerationPipeline.getInstance((x: any) => {
-      if (x.status === "initiate") {
-        self.postMessage({
-          status: "initiate",
-          file: x.file,
-          data: `Downloading ${x.file}...`,
-        });
-      } else if (x.status === "progress") {
-        self.postMessage({
-          status: "progress",
-          file: x.file,
-          progress: x.progress,
-          total: x.total
-        });
-      } else if (x.status === "done") {
-        self.postMessage({
-          status: "done",
-          file: x.file,
-        });
-      }
-    });
-
-    self.postMessage({
-      status: "loading",
-      data: "Preparing model for inference...",
-    });
-
-    // Warm up the model
-    const inputs = tokenizer("Hello");
-    await model.generate({ ...inputs, max_new_tokens: 1 });
-
-    self.postMessage({ status: "ready" });
-  } catch (error: any) {
-    self.postMessage({
-      status: "error",
-      data: error?.message || "Failed to load model"
-    });
-  }
-}
-
 // Handle messages from the main thread
 self.addEventListener("message", async (e) => {
   const { type, data } = e.data;
@@ -185,7 +141,39 @@ self.addEventListener("message", async (e) => {
   try {
     switch (type) {
       case "load":
-        await load();
+        // Load both tokenizer and model
+        const [tokenizer, model] = await TextGenerationPipeline.getInstance((x: any) => {
+          if (x.status === "initiate") {
+            self.postMessage({
+              status: "initiate",
+              file: x.file,
+              data: `Downloading ${x.file}...`,
+            });
+          } else if (x.status === "progress") {
+            self.postMessage({
+              status: "progress",
+              file: x.file,
+              progress: x.progress,
+              total: x.total
+            });
+          } else if (x.status === "done") {
+            self.postMessage({
+              status: "done",
+              file: x.file,
+            });
+          }
+        });
+
+        self.postMessage({
+          status: "loading",
+          data: "Preparing model for inference...",
+        });
+
+        // Warm up the model
+        const inputs = tokenizer("Hello");
+        await model.generate({ ...inputs, max_new_tokens: 1 });
+
+        self.postMessage({ status: "ready" });
         break;
 
       case "generate":
