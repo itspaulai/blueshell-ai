@@ -1,12 +1,12 @@
 
-interface Message {
+export interface Message {
   id: number;
   content: string;
   isUser: boolean;
   timestamp: string;
 }
 
-interface ModelStatus {
+export interface ModelStatus {
   status: 'loading' | 'progress' | 'ready' | 'error';
   data?: string;
   file?: string;

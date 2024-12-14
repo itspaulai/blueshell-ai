@@ -36,11 +36,19 @@ export function ChatContainer() {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    setIsGenerating(true);
 
-    if (!modelStatus) {
+    if (!modelStatus || modelStatus.status !== 'ready') {
       initializeWorker(
-        setModelStatus,
-        (text) => setCurrentResponse(text),
+        (status) => {
+          setModelStatus(status);
+          if (status.status === 'ready') {
+            generateResponse([...messages, userMessage]);
+          }
+        },
+        (text) => {
+          setCurrentResponse(text);
+        },
         () => {
           setMessages(prev => [...prev, {
             id: prev.length + 1,
@@ -52,9 +60,7 @@ export function ChatContainer() {
           setIsGenerating(false);
         }
       );
-      setModelStatus({ status: 'loading' });
-    } else if (modelStatus.status === 'ready') {
-      setIsGenerating(true);
+    } else {
       generateResponse([...messages, userMessage]);
     }
   };
