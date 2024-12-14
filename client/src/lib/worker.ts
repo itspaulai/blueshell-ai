@@ -5,6 +5,9 @@ import {
   InterruptableStoppingCriteria,
 } from "@huggingface/transformers";
 
+/**
+ * This class uses the Singleton pattern to enable lazy-loading of the pipeline
+ */
 class TextGenerationPipeline {
   static model_id = "onnx-community/Llama-3.2-3B-Instruct";
   static tokenizer: any = null;
@@ -14,7 +17,7 @@ class TextGenerationPipeline {
     if (!this.tokenizer) {
       self.postMessage({
         status: "loading",
-        data: "Downloading model...",
+        data: "Downloading tokenizer...",
       });
 
       this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
@@ -23,21 +26,20 @@ class TextGenerationPipeline {
     }
 
     if (!this.model) {
+      self.postMessage({
+        status: "loading",
+        data: "Downloading model...",
+      });
+
       this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
         device: 'auto',
         progress_callback,
       });
-
-      // Warm up the model with a dummy input
-      const inputs = this.tokenizer("Hello");
-      await this.model.generate({ ...inputs, max_new_tokens: 1 });
     }
 
     return [this.tokenizer, this.model];
   }
-
-const stopping_criteria = new InterruptableStoppingCriteria();
-let past_key_values_cache: any = null;
+}
 
 const stopping_criteria = new InterruptableStoppingCriteria();
 let past_key_values_cache: any = null;
@@ -93,7 +95,6 @@ async function generate(messages: any[]) {
 
     const streamer = new TextStreamer(tokenizer, {
       skip_prompt: true,
-      skip_special_tokens: true,
       callback_function,
       token_callback_function,
     });
@@ -114,8 +115,13 @@ async function generate(messages: any[]) {
 
     past_key_values_cache = past_key_values;
 
+    const decoded = tokenizer.batch_decode(sequences, {
+      skip_special_tokens: true,
+    });
+
     self.postMessage({
       status: "complete",
+      output: decoded,
     });
   } catch (error: any) {
     self.postMessage({
@@ -131,13 +137,8 @@ async function load() {
     return;
   }
 
-  self.postMessage({
-    status: "loading",
-    data: "Downloading Llama-3.2-3B-Instruct model...",
-  });
-
   try {
-    const [tokenizer, model] = await TextGenerationPipeline.getInstance((x) => {
+    const [tokenizer, model] = await TextGenerationPipeline.getInstance((x: any) => {
       if (x.status === "initiate") {
         self.postMessage({
           status: "initiate",
@@ -150,6 +151,11 @@ async function load() {
           file: x.file,
           progress: x.progress,
           total: x.total
+        });
+      } else if (x.status === "done") {
+        self.postMessage({
+          status: "done",
+          file: x.file,
         });
       }
     });
@@ -178,6 +184,10 @@ self.addEventListener("message", async (e) => {
 
   try {
     switch (type) {
+      case "load":
+        await load();
+        break;
+
       case "generate":
         stopping_criteria.reset();
         await generate(data);
