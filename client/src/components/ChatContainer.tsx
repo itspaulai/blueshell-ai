@@ -1,73 +1,120 @@
-import { useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
+import { useState, useRef, useEffect } from "react";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
-import { getBotResponse, type Message } from "@/lib/chat";
+import type { Message } from "@/lib/chat";
 
 export function ChatContainer() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      content: "Hello",
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString(),
-    },
-  ]);
-  
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const handleSendMessage = (content: string) => {
-    const newMessage: Message = {
-      id: messages.length + 1,
-      content,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-    
-    setMessages((prev) => [...prev, newMessage]);
-
-    // Add bot response after a short delay
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: messages.length + 2,
-        content: getBotResponse(content),
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, botResponse]);
-    }, 1000);
-  };
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [modelStatus, setModelStatus] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{file?: string; progress?: number; total?: number}>({});
+  const worker = useRef<Worker | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }
+    worker.current = new Worker(new URL('../lib/worker.ts', import.meta.url), {
+      type: 'module'
+    });
+
+    worker.current.onmessage = (e) => {
+      const { status, data, output, file, progress, total } = e.data;
+
+      switch (status) {
+        case "loading":
+          setModelStatus(data);
+          break;
+        case "initiate":
+        case "progress":
+          setProgress({ file, progress, total });
+          break;
+        case "ready":
+          setModelStatus(null);
+          setIsLoading(false);
+          break;
+        case "update":
+          setMessages(prev => {
+            const newMessages = [...prev];
+            if (newMessages.length && !newMessages[newMessages.length - 1].isUser) {
+              newMessages[newMessages.length - 1].content = output;
+            } else {
+              newMessages.push({
+                id: Date.now(),
+                content: output,
+                isUser: false,
+                timestamp: new Date().toISOString()
+              });
+            }
+            return newMessages;
+          });
+          break;
+        case "error":
+          setModelStatus(`Error: ${data}`);
+          setIsLoading(false);
+          break;
+      }
+    };
+
+    return () => worker.current?.terminate();
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim()) return;
+
+    const newMessage: Message = {
+      id: Date.now(),
+      content,
+      isUser: true,
+      timestamp: new Date().toISOString(),
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    setIsLoading(true);
+
+    if (messages.length === 0) {
+      worker.current?.postMessage({ type: "load" });
+    }
+
+    const chatHistory = messages.map(msg => ({
+      role: msg.isUser ? "user" : "assistant",
+      content: msg.content
+    }));
+
+    chatHistory.push({ role: "user", content });
+
+    worker.current?.postMessage({
+      type: "generate",
+      data: chatHistory
+    });
+  };
+
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full px-4" ref={scrollRef}>
-          <div className="max-w-3xl mx-auto py-6">
-            {messages.map((message) => (
-              <ChatBubble
-                key={message.id}
-                message={message.content}
-                isUser={message.isUser}
-                timestamp={message.timestamp}
-              />
-            ))}
+    <div className="flex-1 flex flex-col max-h-screen overflow-hidden bg-white">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((message) => (
+          <ChatBubble key={message.id} message={message} />
+        ))}
+        {modelStatus && (
+          <div className="text-center text-gray-500 text-sm">
+            {modelStatus}
+            {progress.file && (
+              <div>
+                Downloading {progress.file}... 
+                {progress.progress && progress.total && (
+                  <span>{Math.round((progress.progress / progress.total) * 100)}%</span>
+                )}
+              </div>
+            )}
           </div>
-        </ScrollArea>
+        )}
+        <div ref={messagesEndRef} />
       </div>
-      <div className="bg-white p-6">
-        <div className="max-w-3xl mx-auto">
-          <ChatInput onSend={handleSendMessage} />
-        </div>
+      <div className="border-t border-gray-200 p-4">
+        <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
       </div>
     </div>
   );
