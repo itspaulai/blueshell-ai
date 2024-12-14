@@ -1,4 +1,3 @@
-import type { ProgressCallback } from "@huggingface/transformers";
 import {
   AutoTokenizer,
   AutoModelForCausalLM,
@@ -10,101 +9,120 @@ class TextGenerationPipeline {
   static model_id = "onnx-community/Llama-3.2-3B-Instruct";
   static tokenizer: any = null;
   static model: any = null;
-  static isLoading = false;
 
-  static async getInstance(progress_callback?: ProgressCallback) {
-    if (this.isLoading) {
-      throw new Error("Model is already loading");
+  static async getInstance(progress_callback: any = null) {
+    if (!this.tokenizer) {
+      self.postMessage({
+        status: "loading",
+        data: "Downloading model...",
+      });
+
+      this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
+        progress_callback,
+      });
     }
 
-    try {
-      this.isLoading = true;
+    if (!this.model) {
+      this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
+        device: 'auto',
+        progress_callback,
+      });
 
-      if (!this.tokenizer) {
-        this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
-          progress_callback,
-        });
-      }
-
-      if (!this.model) {
-        this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
-          device: 'auto',
-          progress_callback,
-        });
-      }
-
-      return [this.tokenizer, this.model];
-    } finally {
-      this.isLoading = false;
+      // Warm up the model with a dummy input
+      const inputs = this.tokenizer("Hello");
+      await this.model.generate({ ...inputs, max_new_tokens: 1 });
     }
+
+    return [this.tokenizer, this.model];
   }
-}
+
+const stopping_criteria = new InterruptableStoppingCriteria();
+let past_key_values_cache: any = null;
 
 const stopping_criteria = new InterruptableStoppingCriteria();
 let past_key_values_cache: any = null;
 
 async function generate(messages: any[]) {
-  const [tokenizer, model] = await TextGenerationPipeline.getInstance();
-
-  const inputs = tokenizer.apply_chat_template(messages, {
-    add_generation_prompt: true,
-    return_dict: true,
-  });
-
-  let startTime: number | undefined;
-  let numTokens = 0;
-  let tps: number | undefined;
-  
-  const token_callback_function = () => {
-    if (!startTime) {
-      startTime = performance.now();
-    }
-
-    if (numTokens++ > 0) {
-      tps = (numTokens / (performance.now() - startTime)) * 1000;
-    }
-  };
-
-  const callback_function = (output: string) => {
-    self.postMessage({
-      status: "update",
-      output,
-      tps,
-      numTokens,
+  try {
+    const [tokenizer, model] = await TextGenerationPipeline.getInstance((x: any) => {
+      if (x.status === "initiate") {
+        self.postMessage({
+          status: "initiate",
+          file: x.file,
+          data: `Downloading ${x.file}...`,
+        });
+      } else if (x.status === "progress") {
+        self.postMessage({
+          status: "progress",
+          file: x.file,
+          progress: x.progress,
+          total: x.total
+        });
+      } else if (x.status === "done") {
+        self.postMessage({
+          status: "done",
+          file: x.file,
+        });
+      }
     });
-  };
 
-  const streamer = new TextStreamer(tokenizer, {
-    skip_prompt: true,
-    callback_function,
-    token_callback_function,
-    decode_kwargs: { skip_special_tokens: true },
-  });
+    const inputs = tokenizer.apply_chat_template(messages, {
+      add_generation_prompt: true,
+      return_dict: true,
+    });
 
-  self.postMessage({ status: "start" });
+    let startTime: number | undefined;
+    let numTokens = 0;
+    let tps: number | undefined;
 
-  const { past_key_values, sequences } = await model.generate({
-    ...inputs,
-    past_key_values: past_key_values_cache,
-    do_sample: true,
-    top_k: 3,
-    temperature: 0.2,
-    max_new_tokens: 512,
-    streamer,
-    stopping_criteria,
-    return_dict_in_generate: true,
-  });
+    const token_callback_function = () => {
+      startTime ??= performance.now();
+      if (numTokens++ > 0) {
+        tps = (numTokens / (performance.now() - startTime)) * 1000;
+      }
+    };
 
-  past_key_values_cache = past_key_values;
+    const callback_function = (output: string) => {
+      self.postMessage({
+        status: "update",
+        output,
+        tps,
+        numTokens,
+      });
+    };
 
-  const decoded = tokenizer.batch_decode(sequences, {
-    skip_special_tokens: true,
-  });
+    const streamer = new TextStreamer(tokenizer, {
+      skip_prompt: true,
+      skip_special_tokens: true,
+      callback_function,
+      token_callback_function,
+    });
 
-  self.postMessage({
-    status: "complete",
-    output: decoded,
-  });
+    self.postMessage({ status: "start" });
+
+    const { past_key_values, sequences } = await model.generate({
+      ...inputs,
+      past_key_values: past_key_values_cache,
+      do_sample: true,
+      top_k: 3,
+      temperature: 0.2,
+      max_new_tokens: 512,
+      streamer,
+      stopping_criteria,
+      return_dict_in_generate: true,
+    });
+
+    past_key_values_cache = past_key_values;
+
+    self.postMessage({
+      status: "complete",
+    });
+  } catch (error: any) {
+    self.postMessage({
+      status: "error",
+      data: error?.message || "Failed to generate response"
+    });
+  }
 }
 
 async function load() {
@@ -158,27 +176,26 @@ async function load() {
 self.addEventListener("message", async (e) => {
   const { type, data } = e.data;
 
-  switch (type) {
-    case "load":
-      await load();
-      break;
+  try {
+    switch (type) {
+      case "generate":
+        stopping_criteria.reset();
+        await generate(data);
+        break;
 
-    case "generate":
-      if (!TextGenerationPipeline.tokenizer || !TextGenerationPipeline.model) {
-        // Load model if not already loaded
-        await load();
-      }
-      stopping_criteria.reset();
-      await generate(data);
-      break;
+      case "interrupt":
+        stopping_criteria.interrupt();
+        break;
 
-    case "interrupt":
-      stopping_criteria.interrupt();
-      break;
-
-    case "reset":
-      past_key_values_cache = null;
-      stopping_criteria.reset();
-      break;
+      case "reset":
+        past_key_values_cache = null;
+        stopping_criteria.reset();
+        break;
+    }
+  } catch (error: any) {
+    self.postMessage({
+      status: "error",
+      data: error?.message || "An error occurred"
+    });
   }
 });
