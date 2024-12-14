@@ -5,6 +5,7 @@ import { PaperclipIcon, SendIcon } from "lucide-react";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
+  disabled?: boolean;
 }
 
 export function ChatInput({ onSend }: ChatInputProps) {
