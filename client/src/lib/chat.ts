@@ -1,4 +1,3 @@
-
 export interface Message {
   id: number;
   content: string;
@@ -6,52 +5,16 @@ export interface Message {
   timestamp: string;
 }
 
-export interface ModelStatus {
-  status: 'loading' | 'progress' | 'ready' | 'error';
-  data?: string;
-  file?: string;
-  progress?: number;
-  total?: number;
-}
+const responses = [
+  "I'm here to help! What would you like to know?",
+  "That's an interesting question. Let me help you with that.",
+  "I understand your concern. Here's what I think...",
+  "Thanks for asking! I'd be happy to assist you.",
+  "Could you please provide more details about your question?",
+];
 
-let worker: Worker | null = null;
-
-export function initializeWorker(
-  onStatus: (status: ModelStatus) => void,
-  onUpdate: (text: string) => void,
-  onComplete: () => void
-) {
-  if (!worker) {
-    worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
-    
-    worker.onmessage = (event: MessageEvent) => {
-      const { status, data, output, file, progress, total } = event.data;
-      
-      if (status === 'update' && output) {
-        onUpdate(output);
-      } else if (status === 'complete') {
-        onComplete();
-      } else {
-        onStatus({ status, data, file, progress, total });
-      }
-    };
-  }
-  return worker;
-}
-
-export function generateResponse(messages: Message[]) {
-  if (!worker) return;
-  
-  worker.postMessage({
-    type: 'generate',
-    data: messages.map(msg => ({
-      role: msg.isUser ? 'user' : 'assistant',
-      content: msg.content
-    }))
-  });
-}
-
-export function resetWorker() {
-  if (!worker) return;
-  worker.postMessage({ type: 'reset' });
+export function getBotResponse(userMessage: string): string {
+  // Simple static response system
+  const randomIndex = Math.floor(Math.random() * responses.length);
+  return responses[randomIndex];
 }

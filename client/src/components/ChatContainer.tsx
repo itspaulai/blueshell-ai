@@ -1,109 +1,72 @@
-
 import { useEffect, useRef, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
-import { initializeWorker, generateResponse, type Message, type ModelStatus } from "@/lib/chat";
+import { getBotResponse, type Message } from "@/lib/chat";
 
 export function ChatContainer() {
-  const [messages, setMessages] = useState<Message[]>([{
-    id: 1,
-    content: "Hello! How can I help you today?",
-    isUser: false,
-    timestamp: new Date().toLocaleTimeString()
-  }]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
-  const [currentResponse, setCurrentResponse] = useState("");
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      content: "Hello",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleSendMessage = (content: string) => {
+    const newMessage: Message = {
+      id: messages.length + 1,
+      content,
+      isUser: true,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    
+    setMessages((prev) => [...prev, newMessage]);
+
+    // Add bot response after a short delay
+    setTimeout(() => {
+      const botResponse: Message = {
+        id: messages.length + 2,
+        content: getBotResponse(content),
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setMessages((prev) => [...prev, botResponse]);
+    }, 1000);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
         top: scrollRef.current.scrollHeight,
-        behavior: "smooth"
+        behavior: "smooth",
       });
     }
-  }, [messages, currentResponse]);
-
-  const handleSendMessage = (content: string) => {
-    const userMessage: Message = {
-      id: messages.length + 1,
-      content,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString()
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setIsGenerating(true);
-
-    if (!modelStatus || modelStatus.status !== 'ready') {
-      initializeWorker(
-        (status) => {
-          setModelStatus(status);
-          if (status.status === 'ready') {
-            generateResponse([...messages, userMessage]);
-          }
-        },
-        (text) => {
-          setCurrentResponse(text);
-        },
-        () => {
-          setMessages(prev => [...prev, {
-            id: prev.length + 1,
-            content: currentResponse,
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString()
-          }]);
-          setCurrentResponse("");
-          setIsGenerating(false);
-        }
-      );
-    } else {
-      generateResponse([...messages, userMessage]);
-    }
-  };
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-screen">
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full px-4" ref={scrollRef}>
-          <div className="max-w-3xl mx-auto py-6 space-y-4">
+          <div className="max-w-3xl mx-auto py-6">
             {messages.map((message) => (
-              <ChatBubble 
-                key={message.id} 
-                message={message.content} 
+              <ChatBubble
+                key={message.id}
+                message={message.content}
                 isUser={message.isUser}
                 timestamp={message.timestamp}
               />
             ))}
-            {modelStatus && (
-              <div className="text-center text-gray-500 text-sm">
-                {modelStatus.status === 'loading' && (
-                  <p>{modelStatus.data || 'Loading model...'}</p>
-                )}
-                {modelStatus.status === 'progress' && modelStatus.file && (
-                  <p>Downloading {modelStatus.file}... {modelStatus.progress}%</p>
-                )}
-                {modelStatus.status === 'error' && (
-                  <p className="text-red-500">{modelStatus.data}</p>
-                )}
-              </div>
-            )}
-            {currentResponse && (
-              <ChatBubble 
-                message={currentResponse} 
-                isUser={false}
-                timestamp={new Date().toLocaleTimeString()}
-              />
-            )}
           </div>
         </ScrollArea>
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
-          <ChatInput onSend={handleSendMessage} disabled={isGenerating} />
+          <ChatInput onSend={handleSendMessage} />
         </div>
       </div>
     </div>
