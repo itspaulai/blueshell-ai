@@ -9,26 +9,39 @@ import {
  * This class uses the Singleton pattern to enable lazy-loading of the pipeline
  */
 class TextGenerationPipeline {
-  static model_id = "onnx-community/Llama-3.2-1B-Instruct-q4f16";
+  static model_id = "onnx-community/Llama-3.2-3B-Instruct";
 
   static async getInstance(progress_callback = null) {
     try {
-      this.tokenizer ??= AutoTokenizer.from_pretrained(this.model_id, {
-        progress_callback,
-      });
+      if (!this.tokenizer) {
+        console.log("Loading tokenizer from:", this.model_id);
+        this.tokenizer = await AutoTokenizer.from_pretrained(this.model_id, {
+          progress_callback,
+        });
+      }
 
-      this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
-        dtype: "q4f16",
-        device: "auto",
-        progress_callback,
-      });
+      if (!this.model) {
+        console.log("Loading model from:", this.model_id);
+        this.model = await AutoModelForCausalLM.from_pretrained(this.model_id, {
+          model_file: "onnx/model_q4f16.onnx",
+          device: "auto",
+          quantized: true,
+          max_memory: {
+            cpu: "4GB",  // Adjusted for better compatibility
+            gpu: "4GB"   // Adjusted for better compatibility
+          },
+          progress_callback,
+          use_external_data_format: true,
+          local_files_only: false,
+        });
+      }
 
-      return Promise.all([this.tokenizer, this.model]);
+      return [this.tokenizer, this.model];
     } catch (error) {
       console.error("Error in getInstance:", error);
       self.postMessage({
         status: "error",
-        data: error.toString(),
+        data: `Failed to initialize model: ${error.message}\nStack: ${error.stack || "No stack trace"}`
       });
       throw error;
     }
@@ -40,7 +53,7 @@ let past_key_values_cache = null;
 
 async function generate(messages) {
   try {
-    // Retrieve the text-generation pipeline.
+    console.log("Starting generation with messages:", messages);
     const [tokenizer, model] = await TextGenerationPipeline.getInstance();
 
     const inputs = tokenizer.apply_chat_template(messages, {
@@ -74,12 +87,14 @@ async function generate(messages) {
       token_callback_function,
     });
 
-    // Tell the main thread we are starting
     self.postMessage({ status: "start" });
 
+    console.log("Starting model generation...");
     const { past_key_values, sequences } = await model.generate({
       ...inputs,
-      do_sample: false,
+      do_sample: true,
+      temperature: 0.7,
+      top_k: 50,
       max_new_tokens: 1024,
       streamer,
       stopping_criteria,
@@ -91,7 +106,6 @@ async function generate(messages) {
       skip_special_tokens: true,
     });
 
-    // Send the output back to the main thread
     self.postMessage({
       status: "complete",
       output: decoded,
@@ -100,40 +114,48 @@ async function generate(messages) {
     console.error("Error in generate:", error);
     self.postMessage({
       status: "error",
-      data: error.toString(),
+      data: `Generation failed: ${error.message}\nDetails: ${error.stack || "No stack trace available"}`,
     });
   }
 }
 
 async function check() {
   try {
-    // Check for WebGPU support
     const adapter = await navigator.gpu?.requestAdapter();
     if (!adapter) {
-      throw new Error("WebGPU is not supported (no adapter found)");
+      console.log("WebGPU not supported, will fall back to WebGL");
+    } else {
+      console.log("WebGPU adapter found");
     }
   } catch (e) {
-    self.postMessage({
-      status: "error",
-      data: e.toString(),
-    });
+    console.warn("WebGPU check failed:", e);
   }
 }
 
 async function load() {
   try {
+    console.log("Starting model load process...");
     self.postMessage({
       status: "loading",
       data: "Loading model...",
     });
 
-    // Load the pipeline and save it for future use.
     const [tokenizer, model] = await TextGenerationPipeline.getInstance((x) => {
-      // We also add a progress callback to the pipeline so that we can
-      // track model loading.
+      console.log("Progress update:", x);
+      if (x.status === "progress") {
+        const percent = (x.loaded / x.total) * 100;
+        console.log(`${x.file}: ${percent.toFixed(2)}%`);
+      }
       self.postMessage(x);
     });
 
+    console.log("Model and tokenizer loaded successfully");
+    self.postMessage({
+      status: "loading",
+      data: "Warming up model...",
+    });
+
+    console.log("Model loaded, compiling shaders...");
     self.postMessage({
       status: "loading",
       data: "Compiling shaders and warming up model...",
@@ -142,17 +164,17 @@ async function load() {
     // Run model with dummy input to compile shaders
     const inputs = tokenizer("a");
     await model.generate({ ...inputs, max_new_tokens: 1 });
+    console.log("Warmup complete");
     self.postMessage({ status: "ready" });
   } catch (error) {
     console.error("Error in load:", error);
     self.postMessage({
       status: "error",
-      data: `Failed to load model: ${error.message}`,
+      data: error.toString(),
     });
   }
 }
 
-// Listen for messages from the main thread
 self.addEventListener("message", async (e) => {
   const { type, data } = e.data;
 
