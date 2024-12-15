@@ -9,7 +9,7 @@ import {
  * This class uses the Singleton pattern to enable lazy-loading of the pipeline
  */
 class TextGenerationPipeline {
-  static model_id = "onnx-community/Llama-3.2-3B-Instruct";
+  static model_id = "onnx-community/Llama-3.2-1B-Instruct-q4f16";
 
   static async getInstance(progress_callback = null) {
     try {
@@ -18,12 +18,9 @@ class TextGenerationPipeline {
       });
 
       this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
-        progress_callback,
-        model_file: "onnx/model_uint8.onnx",
-        model_file_data: "onnx/model_uint8.onnx_data",
-        cache_dir: "./.cache",
-        quantized: true,
+        dtype: "q4f16",
         device: "auto",
+        progress_callback,
       });
 
       return Promise.all([this.tokenizer, this.model]);
@@ -31,7 +28,7 @@ class TextGenerationPipeline {
       console.error("Error in getInstance:", error);
       self.postMessage({
         status: "error",
-        data: `Model loading failed: ${error.message || error}`,
+        data: error.toString(),
       });
       throw error;
     }
@@ -113,11 +110,13 @@ async function check() {
     // Check for WebGPU support
     const adapter = await navigator.gpu?.requestAdapter();
     if (!adapter) {
-      console.log("WebGPU not available, will use WebGL fallback");
+      throw new Error("WebGPU is not supported (no adapter found)");
     }
   } catch (e) {
-    console.log("WebGPU check error:", e);
-    // Don't treat this as an error, let the device selection handle it
+    self.postMessage({
+      status: "error",
+      data: e.toString(),
+    });
   }
 }
 
@@ -137,10 +136,10 @@ async function load() {
 
     self.postMessage({
       status: "loading",
-      data: "Warming up model...",
+      data: "Compiling shaders and warming up model...",
     });
 
-    // Run model with dummy input to warm up
+    // Run model with dummy input to compile shaders
     const inputs = tokenizer("a");
     await model.generate({ ...inputs, max_new_tokens: 1 });
     self.postMessage({ status: "ready" });
@@ -148,7 +147,7 @@ async function load() {
     console.error("Error in load:", error);
     self.postMessage({
       status: "error",
-      data: `Failed to load model: ${error.message || error}`,
+      data: `Failed to load model: ${error.message}`,
     });
   }
 }
