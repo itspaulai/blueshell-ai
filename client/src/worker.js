@@ -9,9 +9,7 @@ import {
  * This class uses the Singleton pattern to enable lazy-loading of the pipeline
  */
 class TextGenerationPipeline {
-  static model_id = "onnx-community/Llama-3.2-3B-Instruct";
-  static tokenizer;
-  static model;
+  static model_id = "onnx-community/Llama-3.2-1B-Instruct-q4f16";
 
   static async getInstance(progress_callback = null) {
     try {
@@ -20,13 +18,9 @@ class TextGenerationPipeline {
       });
 
       this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
-        quantized: true,
-        model_file: "model_q4f16.onnx",
+        dtype: "q4f16",
         device: "auto",
         progress_callback,
-        revision: "main",
-        cache_dir: "./models",
-        low_cpu_mem_usage: true,
       });
 
       return Promise.all([this.tokenizer, this.model]);
