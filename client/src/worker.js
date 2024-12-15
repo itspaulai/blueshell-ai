@@ -9,7 +9,7 @@ import {
  * This class uses the Singleton pattern to enable lazy-loading of the pipeline
  */
 class TextGenerationPipeline {
-  static model_id = "onnx-community/Llama-3.2-3B-Instruct";
+  static model_id = "onnx-community/Phi-3.5-mini-instruct-onnx-web";
 
   static async getInstance(progress_callback = null) {
     try {
@@ -19,13 +19,14 @@ class TextGenerationPipeline {
 
       this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
         dtype: "q4f16",
-        device: "webgpu",
+        device: "auto",
         use_external_data_format: true,
         progress_callback,
       });
 
       return Promise.all([this.tokenizer, this.model]);
     } catch (error) {
+      console.error("Error in getInstance:", error);
       self.postMessage({
         status: "error",
         data: error.toString(),
@@ -122,21 +123,24 @@ async function load() {
     });
 
     // Load the pipeline and save it for future use.
-    const progressCallback = (progress) => {
-      if (progress.status === "progress") {
+    const progressCallback = (x) => {
+      if (x.status === "progress") {
         self.postMessage({
           status: "progress",
-          file: progress.file,
-          progress: progress.loaded,
-          total: progress.total,
+          file: x.file,
+          progress: x.loaded,
+          total: x.total,
         });
-      } else if (progress.status === "ready") {
+      } else if (x.status === "ready") {
         self.postMessage({
           status: "done",
-          file: progress.file,
+          file: x.file,
         });
-      } else {
-        self.postMessage(progress);
+      } else if (x.status === "initiate") {
+        self.postMessage({
+          status: "initiate",
+          ...x,
+        });
       }
     };
 
@@ -153,11 +157,11 @@ async function load() {
     await model.generate({ ...inputs, max_new_tokens: 1 });
     self.postMessage({ status: "ready" });
   } catch (error) {
+    console.error("Error in load:", error);
     self.postMessage({
       status: "error",
-      data: error.toString(),
+      data: `Failed to load model: ${error.message}`,
     });
-    throw error;
   }
 }
 
