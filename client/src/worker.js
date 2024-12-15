@@ -9,7 +9,7 @@ import {
  * This class uses the Singleton pattern to enable lazy-loading of the pipeline
  */
 class TextGenerationPipeline {
-  static model_id = "onnx-community/Llama-3.2-3B-Instruct";
+  static model_id = "onnx-community/Llama-3.2-1B-Instruct-q4f16";
 
   static async getInstance(progress_callback = null) {
     try {
@@ -20,7 +20,6 @@ class TextGenerationPipeline {
       this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
         dtype: "q4f16",
         device: "auto",
-        use_external_data_format: true,
         progress_callback,
       });
 
@@ -40,62 +39,70 @@ const stopping_criteria = new InterruptableStoppingCriteria();
 let past_key_values_cache = null;
 
 async function generate(messages) {
-  // Retrieve the text-generation pipeline.
-  const [tokenizer, model] = await TextGenerationPipeline.getInstance();
+  try {
+    // Retrieve the text-generation pipeline.
+    const [tokenizer, model] = await TextGenerationPipeline.getInstance();
 
-  const inputs = tokenizer.apply_chat_template(messages, {
-    add_generation_prompt: true,
-    return_dict: true,
-  });
-
-  let startTime;
-  let numTokens = 0;
-  let tps;
-  const token_callback_function = () => {
-    startTime ??= performance.now();
-
-    if (numTokens++ > 0) {
-      tps = (numTokens / (performance.now() - startTime)) * 1000;
-    }
-  };
-  const callback_function = (output) => {
-    self.postMessage({
-      status: "update",
-      output,
-      tps,
-      numTokens,
+    const inputs = tokenizer.apply_chat_template(messages, {
+      add_generation_prompt: true,
+      return_dict: true,
     });
-  };
 
-  const streamer = new TextStreamer(tokenizer, {
-    skip_prompt: true,
-    skip_special_tokens: true,
-    callback_function,
-    token_callback_function,
-  });
+    let startTime;
+    let numTokens = 0;
+    let tps;
+    const token_callback_function = () => {
+      startTime ??= performance.now();
 
-  // Tell the main thread we are starting
-  self.postMessage({ status: "start" });
+      if (numTokens++ > 0) {
+        tps = (numTokens / (performance.now() - startTime)) * 1000;
+      }
+    };
+    const callback_function = (output) => {
+      self.postMessage({
+        status: "update",
+        output,
+        tps,
+        numTokens,
+      });
+    };
 
-  const { past_key_values, sequences } = await model.generate({
-    ...inputs,
-    do_sample: false,
-    max_new_tokens: 1024,
-    streamer,
-    stopping_criteria,
-    return_dict_in_generate: true,
-  });
-  past_key_values_cache = past_key_values;
+    const streamer = new TextStreamer(tokenizer, {
+      skip_prompt: true,
+      skip_special_tokens: true,
+      callback_function,
+      token_callback_function,
+    });
 
-  const decoded = tokenizer.batch_decode(sequences, {
-    skip_special_tokens: true,
-  });
+    // Tell the main thread we are starting
+    self.postMessage({ status: "start" });
 
-  // Send the output back to the main thread
-  self.postMessage({
-    status: "complete",
-    output: decoded,
-  });
+    const { past_key_values, sequences } = await model.generate({
+      ...inputs,
+      do_sample: false,
+      max_new_tokens: 1024,
+      streamer,
+      stopping_criteria,
+      return_dict_in_generate: true,
+    });
+    past_key_values_cache = past_key_values;
+
+    const decoded = tokenizer.batch_decode(sequences, {
+      skip_special_tokens: true,
+    });
+
+    // Send the output back to the main thread
+    self.postMessage({
+      status: "complete",
+      output: decoded,
+    });
+  } catch (error) {
+    console.error("Error in generate:", error);
+    self.postMessage({
+      status: "error",
+      data: error.toString(),
+    });
+  }
 }
 
 async function check() {
@@ -121,29 +128,11 @@ async function load() {
     });
 
     // Load the pipeline and save it for future use.
-    const progressCallback = (x) => {
-      if (x.status === "progress") {
-        self.postMessage({
-          status: "progress",
-          file: x.file,
-          progress: x.loaded,
-          total: x.total,
-        });
-      } else if (x.status === "ready") {
-        self.postMessage({
-          status: "done",
-          file: x.file,
-        });
-      } else if (x.status === "initiate") {
-        self.postMessage({
-          status: "initiate",
-          ...x,
-        });
-      }
-    };
-
-    // Load the pipeline with progress tracking
-    const [tokenizer, model] = await TextGenerationPipeline.getInstance(progressCallback);
+    const [tokenizer, model] = await TextGenerationPipeline.getInstance((x) => {
+      // We also add a progress callback to the pipeline so that we can
+      // track model loading.
+      self.postMessage(x);
+    });
 
     self.postMessage({
       status: "loading",
