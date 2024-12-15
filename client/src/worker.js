@@ -12,18 +12,26 @@ class TextGenerationPipeline {
   static model_id = "onnx-community/Llama-3.2-3B-Instruct";
 
   static async getInstance(progress_callback = null) {
-    this.tokenizer ??= AutoTokenizer.from_pretrained(this.model_id, {
-      progress_callback,
-    });
+    try {
+      this.tokenizer ??= AutoTokenizer.from_pretrained(this.model_id, {
+        progress_callback,
+      });
 
-    this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
-      dtype: "q4f16",
-      device: "auto",
-      use_external_data_format: true,
-      progress_callback,
-    });
+      this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
+        dtype: "q4f16",
+        device: "webgpu",
+        use_external_data_format: true,
+        progress_callback,
+      });
 
-    return Promise.all([this.tokenizer, this.model]);
+      return Promise.all([this.tokenizer, this.model]);
+    } catch (error) {
+      self.postMessage({
+        status: "error",
+        data: error.toString(),
+      });
+      throw error;
+    }
   }
 }
 
@@ -107,27 +115,50 @@ async function check() {
 }
 
 async function load() {
-  self.postMessage({
-    status: "loading",
-    data: "Loading model...",
-  });
+  try {
+    self.postMessage({
+      status: "loading",
+      data: "Loading model...",
+    });
 
-  // Load the pipeline and save it for future use.
-  const [tokenizer, model] = await TextGenerationPipeline.getInstance((x) => {
-    // We also add a progress callback to the pipeline so that we can
-    // track model loading.
-    self.postMessage(x);
-  });
+    // Load the pipeline and save it for future use.
+    const progressCallback = (progress) => {
+      if (progress.status === "progress") {
+        self.postMessage({
+          status: "progress",
+          file: progress.file,
+          progress: progress.loaded,
+          total: progress.total,
+        });
+      } else if (progress.status === "ready") {
+        self.postMessage({
+          status: "done",
+          file: progress.file,
+        });
+      } else {
+        self.postMessage(progress);
+      }
+    };
 
-  self.postMessage({
-    status: "loading",
-    data: "Compiling shaders and warming up model...",
-  });
+    // Load the pipeline with progress tracking
+    const [tokenizer, model] = await TextGenerationPipeline.getInstance(progressCallback);
 
-  // Run model with dummy input to compile shaders
-  const inputs = tokenizer("a");
-  await model.generate({ ...inputs, max_new_tokens: 1 });
-  self.postMessage({ status: "ready" });
+    self.postMessage({
+      status: "loading",
+      data: "Compiling shaders and warming up model...",
+    });
+
+    // Run model with dummy input to compile shaders
+    const inputs = tokenizer("a");
+    await model.generate({ ...inputs, max_new_tokens: 1 });
+    self.postMessage({ status: "ready" });
+  } catch (error) {
+    self.postMessage({
+      status: "error",
+      data: error.toString(),
+    });
+    throw error;
+  }
 }
 
 // Listen for messages from the main thread
