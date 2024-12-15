@@ -9,18 +9,17 @@ import {
  * This class uses the Singleton pattern to enable lazy-loading of the pipeline
  */
 class TextGenerationPipeline {
-  static model_id = "onnx-community/Phi-3.5-mini-instruct-onnx-web";
-  static tokenizer: any = null;
-  static model: any = null;
+  static model_id = "onnx-community/Llama-3.2-3B-Instruct";
 
-  static async getInstance(progress_callback: ((x: any) => void) | null = null) {
+  static async getInstance(progress_callback = null) {
     this.tokenizer ??= AutoTokenizer.from_pretrained(this.model_id, {
       progress_callback,
     });
 
     this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
+      // dtype: "q4",
       dtype: "q4f16",
-      device: "webgpu",
+      device: "auto",
       use_external_data_format: true,
       progress_callback,
     });
@@ -30,9 +29,9 @@ class TextGenerationPipeline {
 }
 
 const stopping_criteria = new InterruptableStoppingCriteria();
-let past_key_values_cache: any = null;
 
-async function generate(messages: any[]) {
+let past_key_values_cache = null;
+async function generate(messages) {
   // Retrieve the text-generation pipeline.
   const [tokenizer, model] = await TextGenerationPipeline.getInstance();
 
@@ -41,9 +40,9 @@ async function generate(messages: any[]) {
     return_dict: true,
   });
 
-  let startTime: number | undefined;
+  let startTime;
   let numTokens = 0;
-  let tps: number | undefined;
+  let tps;
   const token_callback_function = () => {
     startTime ??= performance.now();
 
@@ -51,7 +50,7 @@ async function generate(messages: any[]) {
       tps = (numTokens / (performance.now() - startTime)) * 1000;
     }
   };
-  const callback_function = (output: string) => {
+  const callback_function = (output) => {
     self.postMessage({
       status: "update",
       output,
@@ -62,9 +61,9 @@ async function generate(messages: any[]) {
 
   const streamer = new TextStreamer(tokenizer, {
     skip_prompt: true,
+    skip_special_tokens: true,
     callback_function,
     token_callback_function,
-    decode_kwargs: { skip_special_tokens: true }
   });
 
   // Tell the main thread we are starting
@@ -72,10 +71,14 @@ async function generate(messages: any[]) {
 
   const { past_key_values, sequences } = await model.generate({
     ...inputs,
-    past_key_values: past_key_values_cache,
+    // TODO: Enable once model is fixed
+    // past_key_values: past_key_values_cache,
+
+    // Sampling
     do_sample: true,
     top_k: 3,
     temperature: 0.2,
+
     max_new_tokens: 1024,
     streamer,
     stopping_criteria,
@@ -96,14 +99,14 @@ async function generate(messages: any[]) {
 
 async function check() {
   try {
-    const adapter = await (navigator as any).gpu?.requestAdapter();
+    const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       throw new Error("WebGPU is not supported (no adapter found)");
     }
-  } catch (e: unknown) {
+  } catch (e) {
     self.postMessage({
       status: "error",
-      data: e instanceof Error ? e.message : "Unknown error occurred",
+      data: e.toString(),
     });
   }
 }
@@ -115,7 +118,7 @@ async function load() {
   });
 
   // Load the pipeline and save it for future use.
-  await TextGenerationPipeline.getInstance((x) => {
+  const [tokenizer, model] = await TextGenerationPipeline.getInstance((x) => {
     // We also add a progress callback to the pipeline so that we can
     // track model loading.
     self.postMessage(x);
@@ -127,12 +130,10 @@ async function load() {
   });
 
   // Run model with dummy input to compile shaders
-  const [tokenizer, model] = await TextGenerationPipeline.getInstance();
   const inputs = tokenizer("a");
   await model.generate({ ...inputs, max_new_tokens: 1 });
   self.postMessage({ status: "ready" });
 }
-
 // Listen for messages from the main thread
 self.addEventListener("message", async (e) => {
   const { type, data } = e.data;
