@@ -5,9 +5,10 @@ import { PaperclipIcon, SendIcon } from "lucide-react";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
+  disabled?: boolean;
 }
 
-export function ChatInput({ onSend }: ChatInputProps) {
+export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,10 +30,11 @@ export function ChatInput({ onSend }: ChatInputProps) {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type your message..."
-          className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 bg-transparent h-12 text-base"
+          className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 bg-transparent h-12 text-base disabled:opacity-50"
+          disabled={disabled}
         />
       </div>
-      <Button type="submit" size="icon" disabled={!message.trim()} className="h-12 w-12">
+      <Button type="submit" size="icon" disabled={!message.trim() || disabled} className="h-12 w-12">
         <SendIcon className="h-6 w-6" />
         <span className="sr-only">Send message</span>
       </Button>
