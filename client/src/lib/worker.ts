@@ -13,7 +13,7 @@ class TextGenerationPipeline {
   static tokenizer: any = null;
   static model: any = null;
 
-  static async getInstance(progress_callback: ((x: any) => void) | null = null) {
+  static async getInstance(progress_callback?: (x: any) => void) {
     this.tokenizer ??= AutoTokenizer.from_pretrained(this.model_id, {
       progress_callback,
     });
