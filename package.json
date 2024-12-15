@@ -43,6 +43,7 @@
     "@radix-ui/react-tooltip": "^1.1.3",
     "@replit/vite-plugin-shadcn-theme-json": "^0.0.4",
     "@tanstack/react-query": "^5.60.5",
+    "@webgpu/types": "^0.1.51",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",

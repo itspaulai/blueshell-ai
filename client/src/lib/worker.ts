@@ -5,8 +5,14 @@ import {
   InterruptableStoppingCriteria,
 } from "@huggingface/transformers";
 
-// Add WebGPU types
-import "@webgpu/types";
+// WebGPU types are handled through tsconfig
+declare global {
+  interface Navigator {
+    gpu?: {
+      requestAdapter(): Promise<GPUAdapter | null>;
+    };
+  }
+}
 
 const MODEL_ID = "onnx-community/Llama-3.2-3B-Instruct";
 
