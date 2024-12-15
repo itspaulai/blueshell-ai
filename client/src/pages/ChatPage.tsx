@@ -84,8 +84,10 @@ export default function ChatPage() {
           setMessages((prev) => {
             const cloned = [...prev];
             const last = cloned.at(-1);
+            if (!last) return cloned;
+            
             cloned[cloned.length - 1] = {
-              ...last,
+              role: "assistant",
               content: last.content + output,
             };
             return cloned;
