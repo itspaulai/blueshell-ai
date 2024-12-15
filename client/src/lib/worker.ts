@@ -5,6 +5,9 @@ import {
   InterruptableStoppingCriteria,
 } from "@huggingface/transformers";
 
+// Add WebGPU types
+import "@webgpu/types";
+
 const MODEL_ID = "onnx-community/Llama-3.2-3B-Instruct";
 
 /**
@@ -125,14 +128,14 @@ async function generate(messages: any[]) {
 // Handle messages from the main thread
 async function check() {
   try {
-    const adapter = await navigator.gpu.requestAdapter();
+    const adapter = await (navigator as any).gpu?.requestAdapter();
     if (!adapter) {
       throw new Error("WebGPU is not supported (no adapter found)");
     }
-  } catch (e) {
+  } catch (e: unknown) {
     self.postMessage({
       status: "error",
-      data: e.toString(),
+      data: e instanceof Error ? e.message : "Unknown error occurred",
     });
   }
 }
