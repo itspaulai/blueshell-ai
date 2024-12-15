@@ -19,7 +19,7 @@ class TextGenerationPipeline {
 
       this.model ??= AutoModelForCausalLM.from_pretrained(this.model_id, {
         dtype: "q4f16",
-        device: "webgpu",
+        device: "auto",
         use_external_data_format: true,
         progress_callback,
       });
@@ -79,9 +79,7 @@ async function generate(messages) {
 
   const { past_key_values, sequences } = await model.generate({
     ...inputs,
-    do_sample: true,
-    top_k: 3,
-    temperature: 0.2,
+    do_sample: false,
     max_new_tokens: 1024,
     streamer,
     stopping_criteria,
