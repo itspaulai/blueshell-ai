@@ -43,6 +43,13 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const [messageHistory, setMessageHistory] = useState<webllm.ChatMessage[]>([
+    {
+      role: "system",
+      content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
+    }
+  ]);
+
   const sendMessage = useCallback(async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
     if (!engineRef.current && !isModelLoaded) {
       await initializeEngine();
@@ -56,17 +63,15 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     abortControllerRef.current = new AbortController();
     setIsGenerating(true);
 
+    // Add user message to history
+    const updatedHistory = [...messageHistory, { role: "user", content: message }];
+    setMessageHistory(updatedHistory);
+
     try {
       const request: webllm.ChatCompletionRequest = {
         stream: true,
         stream_options: { include_usage: true },
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
-          },
-          { role: "user", content: message },
-        ],
+        messages: updatedHistory,
         temperature: 0.7,
         max_tokens: 800,
       };
@@ -75,10 +80,14 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       
       // Create a wrapper generator that handles the isGenerating state
       const wrappedResponse = async function* () {
+        let assistantMessage = "";
         try {
           for await (const chunk of response) {
+            assistantMessage += chunk.choices[0]?.delta?.content || "";
             yield chunk;
           }
+          // Add assistant response to history
+          setMessageHistory(prev => [...prev, { role: "assistant", content: assistantMessage }]);
         } finally {
           setIsGenerating(false);
         }
