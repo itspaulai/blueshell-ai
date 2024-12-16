@@ -1,62 +1,72 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
+import { getBotResponse, type Message } from "@/lib/chat";
 
-interface Message {
-  role: string;
-  content: string;
-}
-
-interface ChatContainerProps {
-  messages: Message[];
-  isLoading: boolean;
-  onSendMessage: (message: string) => void;
-  onReset: () => void;
-}
-
-export function ChatContainer({ messages, isLoading, onSendMessage, onReset }: ChatContainerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+export function ChatContainer() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      content: "Hello",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]);
   
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleSendMessage = (content: string) => {
+    const newMessage: Message = {
+      id: messages.length + 1,
+      content,
+      isUser: true,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    
+    setMessages((prev) => [...prev, newMessage]);
+
+    // Add bot response after a short delay
+    setTimeout(() => {
+      const botResponse: Message = {
+        id: messages.length + 2,
+        content: getBotResponse(content),
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setMessages((prev) => [...prev, botResponse]);
+    }, 1000);
+  };
+
   useEffect(() => {
-    const scrollContainer = containerRef.current;
-    if (scrollContainer) {
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }, [messages]);
 
   return (
     <div className="flex flex-col h-screen">
       <div className="flex-1 overflow-hidden">
-        <div className="h-full px-4 overflow-auto" ref={containerRef}>
+        <ScrollArea className="h-full px-4" ref={scrollRef}>
           <div className="max-w-3xl mx-auto py-6">
-            {messages.length === 0 ? (
-              <div className="text-center text-gray-500">
-                Send a message to start the conversation
-              </div>
-            ) : (
-              messages.map((message, index) => (
-                <ChatBubble
-                  key={index}
-                  message={message.content}
-                  isUser={message.role === "user"}
-                  timestamp={new Date().toLocaleTimeString()}
-                />
-              ))
-            )}
-            {isLoading && (
+            {messages.map((message) => (
               <ChatBubble
-                message="..."
-                isUser={false}
-                timestamp={new Date().toLocaleTimeString()}
+                key={message.id}
+                message={message.content}
+                isUser={message.isUser}
+                timestamp={message.timestamp}
               />
-            )}
+            ))}
           </div>
-        </div>
+        </ScrollArea>
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
-          <ChatInput onSend={onSendMessage} disabled={isLoading} />
+          <ChatInput onSend={handleSendMessage} />
         </div>
       </div>
     </div>
