@@ -12,17 +12,14 @@ interface Message {
 }
 
 export function ChatContainer() {
-  const { messageHistory } = useWebLLM();
-  const [messages, setMessages] = useState<Message[]>(() => 
-    messageHistory
-      .filter(msg => msg.role !== "system")
-      .map((msg, index) => ({
-        id: index + 1,
-        content: msg.content,
-        isUser: msg.role === "user",
-        timestamp: new Date().toLocaleTimeString(),
-      }))
-  );
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      content: "Hello! How can I help you today?",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]);
   
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
