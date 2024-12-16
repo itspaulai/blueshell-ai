@@ -49,8 +49,9 @@ export function ChatContainer() {
       const response = await sendMessage(content);
       if (!response) return;
 
+      const botMessageId = messages.length + 2;
       const botMessage: Message = {
-        id: messages.length + 2,
+        id: botMessageId,
         content: "",
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
@@ -61,13 +62,10 @@ export function ChatContainer() {
 
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
-        setCurrentResponse(fullMessage);
+        setMessages((prev) => prev.map(msg => 
+          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
+        ));
       }
-
-      setMessages((prev) => prev.map(msg => 
-        msg.id === botMessage.id ? { ...msg, content: fullMessage } : msg
-      ));
-      setCurrentResponse("");
       
     } catch (error) {
       console.error('Error generating response:', error);
