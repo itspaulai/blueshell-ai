@@ -7,10 +7,19 @@ export interface Message {
   timestamp: string;
 }
 
+export interface InitProgress {
+  text: string;
+}
+
 export class ChatModel {
   private engine: webllm.MLCEngineInterface | null = null;
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
+  private progressCallback: ((progress: InitProgress) => void) | null = null;
+
+  setProgressCallback(callback: (progress: InitProgress) => void) {
+    this.progressCallback = callback;
+  }
 
   async initialize() {
     if (this.isInitialized || this.initializationPromise) {
@@ -18,14 +27,14 @@ export class ChatModel {
     }
 
     this.initializationPromise = (async () => {
-      const selectedModel = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
+      const selectedModel = "Llama-2-7b-chat-q4f32_1";
       
       this.engine = await webllm.CreateWebWorkerMLCEngine(
         new Worker(new URL("./worker.ts", import.meta.url), { type: "module" }),
         selectedModel,
         {
           initProgressCallback: (report) => {
-            console.log("Model initialization progress:", report.text);
+            this.progressCallback?.({ text: report.text });
           },
         }
       );
@@ -42,13 +51,12 @@ export class ChatModel {
     }
 
     const formattedMessages = messages.map(msg => ({
-      role: msg.isUser ? "user" : "assistant",
+      role: msg.isUser ? "user" as const : "assistant" as const,
       content: msg.content
     }));
 
-    // Add system message at the beginning
     formattedMessages.unshift({
-      role: "system",
+      role: "system" as const,
       content: "You are a helpful, respectful and honest assistant. Always provide accurate and helpful responses."
     });
 
@@ -59,7 +67,12 @@ export class ChatModel {
       max_tokens: 512
     };
 
-    return this.engine.chat.completions.create(request);
+    const response = await this.engine.chat.completions.create(request);
+    if (!response[Symbol.asyncIterator]) {
+      throw new Error("Expected streaming response");
+    }
+    
+    return response;
   }
 }
 

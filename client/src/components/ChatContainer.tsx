@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
-import { chatModel, type Message } from "@/lib/chat";
+import { chatModel, type Message, type InitProgress } from "@/lib/chat";
 
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([
@@ -14,7 +13,7 @@ export function ChatContainer() {
       timestamp: new Date().toLocaleTimeString(),
     },
   ]);
-  const [isModelLoading, setIsModelLoading] = useState(false);
+  const [modelStatus, setModelStatus] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -30,10 +29,16 @@ export function ChatContainer() {
     setMessages((prev) => [...prev, newMessage]);
 
     // Initialize model if this is the first message
-    if (!isModelLoading && messages.length === 1) {
-      setIsModelLoading(true);
+    if (!modelStatus && messages.length === 1) {
+      setModelStatus("Starting up the AI assistant...");
+      
+      // Set up progress callback
+      chatModel.setProgressCallback((progress: InitProgress) => {
+        setModelStatus(progress.text);
+      });
+      
       await chatModel.initialize();
-      setIsModelLoading(false);
+      setModelStatus("");
     }
 
     // Create a placeholder message for the streaming response
@@ -48,11 +53,12 @@ export function ChatContainer() {
     setIsGenerating(true);
 
     try {
-      const stream = await chatModel.generateResponse(messages);
+      const stream = await chatModel.generateResponse([...messages, newMessage]);
       let streamedContent = "";
 
       for await (const chunk of stream) {
-        streamedContent += chunk.choices[0]?.delta?.content || "";
+        const content = chunk.choices[0]?.delta?.content || "";
+        streamedContent += content;
         setMessages((prev) => prev.map((msg) => 
           msg.id === responsePlaceholder.id
             ? { ...msg, content: streamedContent }
@@ -93,12 +99,20 @@ export function ChatContainer() {
                 timestamp={message.timestamp}
               />
             ))}
+            {modelStatus && (
+              <div className="text-sm text-blue-500 animate-pulse mb-4">
+                {modelStatus}
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
-          <ChatInput onSend={handleSendMessage} />
+          <ChatInput 
+            onSend={handleSendMessage} 
+            isLoading={!!modelStatus || isGenerating}
+          />
         </div>
       </div>
     </div>
