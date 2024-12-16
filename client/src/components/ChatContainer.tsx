@@ -21,7 +21,7 @@ export function ChatContainer() {
     },
   ]);
   
-  const { sendMessage, isModelLoaded, loadingProgress, isGenerating } = useWebLLM();
+  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentResponse, setCurrentResponse] = useState("");
 
@@ -108,7 +108,12 @@ export function ChatContainer() {
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
-          <ChatInput onSend={handleSendMessage} disabled={isGenerating} />
+          <ChatInput 
+            onSend={handleSendMessage} 
+            onStop={interruptGeneration}
+            disabled={isGenerating} 
+            isGenerating={isGenerating}
+          />
         </div>
       </div>
     </div>

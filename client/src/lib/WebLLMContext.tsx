@@ -4,8 +4,9 @@ import * as webllm from "@mlc-ai/web-llm";
 type WebLLMContextType = {
   isModelLoaded: boolean;
   loadingProgress: string;
-  sendMessage: (message: string) => Promise<void>;
+  sendMessage: (message: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
   isGenerating: boolean;
+  interruptGeneration: () => void;
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -23,6 +24,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const [loadingProgress, setLoadingProgress] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const engineRef = useRef<webllm.MLCEngineInterface | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const initializeEngine = useCallback(async () => {
     const initProgressCallback = (report: webllm.InitProgressReport) => {
@@ -41,14 +43,19 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const sendMessage = useCallback(async (message: string) => {
+  const sendMessage = useCallback(async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
     if (!engineRef.current && !isModelLoaded) {
       await initializeEngine();
     }
 
-    if (!engineRef.current) return;
+    if (!engineRef.current) {
+      throw new Error("Engine not initialized");
+    }
 
+    // Create a new AbortController for this request
+    abortControllerRef.current = new AbortController();
     setIsGenerating(true);
+
     try {
       const request: webllm.ChatCompletionRequest = {
         stream: true,
@@ -64,18 +71,28 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         max_tokens: 800,
       };
 
-      return engineRef.current.chat.completions.create(request);
-    } finally {
+      const response = await engineRef.current.chat.completions.create(request);
+      return response;
+    } catch (error) {
       setIsGenerating(false);
+      throw error;
     }
   }, [isModelLoaded, initializeEngine]);
+
+  const interruptGeneration = useCallback(() => {
+    if (engineRef.current && isGenerating) {
+      engineRef.current.interruptGenerate();
+      setIsGenerating(false);
+    }
+  }, [isGenerating]);
 
   return (
     <WebLLMContext.Provider value={{ 
       isModelLoaded, 
       loadingProgress, 
       sendMessage,
-      isGenerating
+      isGenerating,
+      interruptGeneration
     }}>
       {children}
     </WebLLMContext.Provider>
