@@ -35,31 +35,21 @@ export function ChatContainer() {
     
     setMessages((prev) => [...prev, userMessage]);
 
-    if (!isModelLoaded) {
-      const loadingMessage: Message = {
-        id: messages.length + 2,
-        content: "Loading AI model...",
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, loadingMessage]);
-    }
+    const botMessageId = messages.length + 2;
+    const initialBotMessage: Message = {
+      id: botMessageId,
+      content: isModelLoaded ? "" : "Loading AI model...",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    
+    setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
       const response = await sendMessage(content);
       if (!response) return;
 
-      const botMessageId = messages.length + 2;
-      const botMessage: Message = {
-        id: botMessageId,
-        content: "",
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      
-      setMessages((prev) => [...prev, botMessage]);
       let fullMessage = "";
-
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
         setMessages((prev) => prev.map(msg => 
