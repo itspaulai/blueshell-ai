@@ -3,21 +3,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
-import { getBotResponse, type Message } from "@/lib/chat";
+import { chatModel, type Message } from "@/lib/chat";
 
 export function ChatContainer() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      content: "Hello",
+      content: "Hello! I'm your AI assistant. Send me a message to start our conversation.",
       isUser: false,
       timestamp: new Date().toLocaleTimeString(),
     },
   ]);
+  const [isModelLoading, setIsModelLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = async (content: string) => {
     const newMessage: Message = {
       id: messages.length + 1,
       content,
@@ -27,16 +29,46 @@ export function ChatContainer() {
     
     setMessages((prev) => [...prev, newMessage]);
 
-    // Add bot response after a short delay
-    setTimeout(() => {
-      const botResponse: Message = {
-        id: messages.length + 2,
-        content: getBotResponse(content),
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, botResponse]);
-    }, 1000);
+    // Initialize model if this is the first message
+    if (!isModelLoading && messages.length === 1) {
+      setIsModelLoading(true);
+      await chatModel.initialize();
+      setIsModelLoading(false);
+    }
+
+    // Create a placeholder message for the streaming response
+    const responsePlaceholder: Message = {
+      id: messages.length + 2,
+      content: "",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    setMessages((prev) => [...prev, responsePlaceholder]);
+    setIsGenerating(true);
+
+    try {
+      const stream = await chatModel.generateResponse(messages);
+      let streamedContent = "";
+
+      for await (const chunk of stream) {
+        streamedContent += chunk.choices[0]?.delta?.content || "";
+        setMessages((prev) => prev.map((msg) => 
+          msg.id === responsePlaceholder.id
+            ? { ...msg, content: streamedContent }
+            : msg
+        ));
+      }
+    } catch (error) {
+      console.error("Error generating response:", error);
+      setMessages((prev) => prev.map((msg) => 
+        msg.id === responsePlaceholder.id
+          ? { ...msg, content: "I apologize, but I encountered an error while generating a response. Please try again." }
+          : msg
+      ));
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   useEffect(() => {
