@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChatContainer } from "@/components/ChatContainer";
+import { WebLLMProvider } from "@/lib/WebLLMContext";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, ChevronDownIcon, HelpCircleIcon, MessageCircleIcon } from "lucide-react";
 
@@ -59,7 +60,9 @@ export default function ChatPage() {
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        <ChatContainer />
+        <WebLLMProvider>
+          <ChatContainer />
+        </WebLLMProvider>
       </div>
     </div>
   );
