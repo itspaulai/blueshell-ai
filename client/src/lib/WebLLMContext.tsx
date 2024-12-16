@@ -7,6 +7,7 @@ type WebLLMContextType = {
   sendMessage: (message: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
   isGenerating: boolean;
   interruptGeneration: () => void;
+  messageHistory: { role: "system" | "user" | "assistant"; content: string; }[];
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -113,7 +114,8 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       loadingProgress, 
       sendMessage,
       isGenerating,
-      interruptGeneration
+      interruptGeneration,
+      messageHistory
     }}>
       {children}
     </WebLLMContext.Provider>
