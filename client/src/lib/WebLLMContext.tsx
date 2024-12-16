@@ -72,7 +72,19 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       };
 
       const response = await engineRef.current.chat.completions.create(request);
-      return response;
+      
+      // Create a wrapper generator that handles the isGenerating state
+      const wrappedResponse = async function* () {
+        try {
+          for await (const chunk of response) {
+            yield chunk;
+          }
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+      
+      return wrappedResponse();
     } catch (error) {
       setIsGenerating(false);
       throw error;
