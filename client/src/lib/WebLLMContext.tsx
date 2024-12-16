@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
 import * as webllm from "@mlc-ai/web-llm";
 
+interface ChatMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
 type WebLLMContextType = {
   isModelLoaded: boolean;
   loadingProgress: string;
@@ -44,7 +49,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const [messageHistory, setMessageHistory] = useState<webllm.ChatMessage[]>([
+  const [messageHistory, setMessageHistory] = useState<ChatMessage[]>([
     {
       role: "system",
       content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
