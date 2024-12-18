@@ -12,30 +12,16 @@ interface Message {
 }
 
 export function ChatContainer() {
-  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration, messageHistory } = useWebLLM();
-  
-  // Convert WebLLM message history to UI messages
-  const [messages, setMessages] = useState<Message[]>([]);
-  
-  useEffect(() => {
-    const convertedMessages = messageHistory.slice(1).map((msg, index) => ({
-      id: index + 1,
-      content: msg.content,
-      isUser: msg.role === "user",
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      content: "Hello! How can I help you today?",
+      isUser: false,
       timestamp: new Date().toLocaleTimeString(),
-    }));
-    
-    if (convertedMessages.length === 0) {
-      convertedMessages.push({
-        id: 1,
-        content: "Hello! How can I help you today?",
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString(),
-      });
-    }
-    
-    setMessages(convertedMessages);
-  }, [messageHistory]);
+    },
+  ]);
+  
+  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentResponse, setCurrentResponse] = useState("");
 
@@ -47,41 +33,39 @@ export function ChatContainer() {
       timestamp: new Date().toLocaleTimeString(),
     };
     
+    setMessages((prev) => [...prev, userMessage]);
+
+    const botMessageId = messages.length + 2;
+    const initialBotMessage: Message = {
+      id: botMessageId,
+      content: isModelLoaded ? "" : "Loading AI model...",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    
+    setMessages((prev) => [...prev, initialBotMessage]);
+
     try {
       const response = await sendMessage(content);
       if (!response) return;
 
-      // The message updates will be handled by the WebLLMContext
-      // through the messageHistory state
       let fullMessage = "";
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
-        // Update UI with streaming response
-        setMessages((prev) => {
-          const lastMessage = prev[prev.length - 1];
-          if (!lastMessage.isUser) {
-            return prev.map((msg, idx) => 
-              idx === prev.length - 1 ? { ...msg, content: fullMessage } : msg
-            );
-          } else {
-            return [...prev, {
-              id: prev.length + 1,
-              content: fullMessage,
-              isUser: false,
-              timestamp: new Date().toLocaleTimeString(),
-            }];
-          }
-        });
+        setMessages((prev) => prev.map(msg => 
+          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
+        ));
       }
       
     } catch (error) {
       console.error('Error generating response:', error);
-      setMessages((prev) => [...prev, {
-        id: prev.length + 1,
+      const errorMessage: Message = {
+        id: messages.length + 2,
         content: "I apologize, but I encountered an error. Please try again.",
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
-      }]);
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     }
   };
 

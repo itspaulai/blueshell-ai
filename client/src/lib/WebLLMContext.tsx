@@ -71,58 +71,36 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     setMessageHistory(prev => [...prev, userMessage]);
 
     try {
-      // Create request with full conversation context
       const request: webllm.ChatCompletionRequest = {
         stream: true,
         stream_options: { include_usage: true },
-        messages: [
-          // Always include system message
-          messageHistory[0],
-          // Include previous conversation context (last 10 messages)
-          ...messageHistory.slice(-10),
-          // Add current user message
-          userMessage
-        ],
-        temperature: 0.7,
+        messages: [...messageHistory, userMessage],
+        temperature: 0.8,
         max_tokens: 800,
       };
 
       const response = await engineRef.current.chat.completions.create(request);
-
+      
       // Create a wrapper generator that handles the isGenerating state and message history
       const wrappedResponse = async function* () {
         let assistantMessage = "";
-        let isFirstChunk = true;
         try {
           for await (const chunk of response) {
-            const content = chunk.choices[0]?.delta?.content || "";
-            if (content) {
-              assistantMessage += content;
-
-              // Update message history with the assistant's response
-              setMessageHistory(prev => {
-                // On first chunk, add a new assistant message
-                if (isFirstChunk) {
-                  isFirstChunk = false;
-                  return [...prev, {
-                    role: "assistant",
-                    content: assistantMessage
-                  }];
-                }
-
-                // On subsequent chunks, update the existing assistant message
-                return prev.map((msg, idx) =>
-                  idx === prev.length - 1 ? { ...msg, content: assistantMessage } : msg
-                );
-              });
-            }
+            assistantMessage += chunk.choices[0]?.delta?.content || "";
             yield chunk;
           }
         } finally {
+          // Add assistant's complete message to history
+          if (assistantMessage) {
+            setMessageHistory(prev => [...prev, { 
+              role: "assistant", 
+              content: assistantMessage 
+            }]);
+          }
           setIsGenerating(false);
         }
       };
-
+      
       return wrappedResponse();
     } catch (error) {
       setIsGenerating(false);
@@ -138,9 +116,9 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   }, [isGenerating]);
 
   return (
-    <WebLLMContext.Provider value={{
-      isModelLoaded,
-      loadingProgress,
+    <WebLLMContext.Provider value={{ 
+      isModelLoaded, 
+      loadingProgress, 
       sendMessage,
       isGenerating,
       interruptGeneration,
