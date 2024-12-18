@@ -31,7 +31,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [messageHistory, setMessageHistory] = useState<Message[]>([{
     role: "system",
-    content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
+    content: "You are a helpful, respectful and honest assistant. Always maintain context of the entire conversation, including both user messages and your previous responses. When asked to continue or elaborate on previous topics, refer back to the conversation history. Be direct and concise in your responses.",
   }]);
   const engineRef = useRef<webllm.MLCEngineInterface | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -68,13 +68,20 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
 
     // Add user message to history
     const userMessage: Message = { role: "user", content: message };
-    setMessageHistory(prev => [...prev, userMessage]);
+    
+    // Update message history with the new user message
+    // Using a callback to ensure we have the latest state
+    let updatedHistory: Message[] = [];
+    setMessageHistory(prev => {
+      updatedHistory = [...prev, userMessage];
+      return updatedHistory;
+    });
 
     try {
       const request: webllm.ChatCompletionRequest = {
         stream: true,
         stream_options: { include_usage: true },
-        messages: [...messageHistory, userMessage],
+        messages: updatedHistory, // Use the updated history that includes the new user message
         temperature: 0.8,
         max_tokens: 800,
       };
@@ -106,7 +113,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       setIsGenerating(false);
       throw error;
     }
-  }, [isModelLoaded, initializeEngine]);
+  }, [isModelLoaded, initializeEngine, messageHistory]); // Added messageHistory to dependencies
 
   const interruptGeneration = useCallback(() => {
     if (engineRef.current && isGenerating) {
