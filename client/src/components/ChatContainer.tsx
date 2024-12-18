@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
@@ -12,63 +12,25 @@ interface Message {
 }
 
 export function ChatContainer() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      content: "Hello! How can I help you today?",
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString(),
-    },
-  ]);
-  
-  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
+  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration, messageHistory } = useWebLLM();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentResponse, setCurrentResponse] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [currentResponse, setCurrentResponse] = useState("");
 
-  const handleSendMessage = async (content: string) => {
-    const userMessage: Message = {
-      id: messages.length + 1,
-      content,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-    
-    setMessages((prev) => [...prev, userMessage]);
-
-    const botMessageId = messages.length + 2;
-    const initialBotMessage: Message = {
-      id: botMessageId,
-      content: isModelLoaded ? "" : "Loading AI model...",
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-    
-    setMessages((prev) => [...prev, initialBotMessage]);
-
-    try {
-      const response = await sendMessage(content);
-      if (!response) return;
-
-      let fullMessage = "";
-      for await (const chunk of response) {
-        fullMessage += chunk.choices[0]?.delta?.content || "";
-        setMessages((prev) => prev.map(msg => 
-          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
-        ));
-      }
-      
-    } catch (error) {
-      console.error('Error generating response:', error);
-      const errorMessage: Message = {
-        id: messages.length + 2,
-        content: "I apologize, but I encountered an error. Please try again.",
-        isUser: false,
+  // Sync messages with messageHistory
+  useEffect(() => {
+    const uiMessages = messageHistory
+      .slice(1) // Skip the system message
+      .map((msg, index) => ({
+        id: index,
+        content: msg.content,
+        isUser: msg.role === "user",
         timestamp: new Date().toLocaleTimeString(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    }
-  };
+      }));
+    setMessages(uiMessages);
+  }, [messageHistory]);
 
+  // Auto-scroll effect
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
@@ -77,6 +39,24 @@ export function ChatContainer() {
       });
     }
   }, [messages, currentResponse]);
+
+  const handleSendMessage = async (content: string) => {
+    if (!content.trim()) return;
+
+    try {
+      const response = await sendMessage(content);
+      if (!response) return;
+
+      let fullMessage = "";
+      for await (const chunk of response) {
+        fullMessage += chunk.choices[0]?.delta?.content || "";
+        setCurrentResponse(fullMessage);
+      }
+      setCurrentResponse("");
+    } catch (error) {
+      console.error('Error generating response:', error);
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -111,7 +91,7 @@ export function ChatContainer() {
           <ChatInput 
             onSend={handleSendMessage} 
             onStop={interruptGeneration}
-            disabled={isGenerating} 
+            disabled={!isModelLoaded} 
             isGenerating={isGenerating}
           />
         </div>
