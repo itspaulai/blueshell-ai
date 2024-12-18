@@ -12,21 +12,14 @@ interface Message {
 }
 
 export function ChatContainer() {
-  const { messageHistory } = useWebLLM();
-  const [messages, setMessages] = useState<Message[]>([]);
-
-  // Convert context messages to UI messages on mount and when messageHistory changes
-  useEffect(() => {
-    const uiMessages = messageHistory
-      .filter(msg => msg.role !== "system") // Don't show system messages
-      .map((msg, index) => ({
-        id: index + 1,
-        content: msg.content,
-        isUser: msg.role === "user",
-        timestamp: new Date().toLocaleTimeString(),
-      }));
-    setMessages(uiMessages);
-  }, [messageHistory]);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      content: "Hello! How can I help you today?",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]);
   
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -56,16 +49,13 @@ export function ChatContainer() {
       const response = await sendMessage(content);
       if (!response) return;
 
-      setCurrentResponse(""); // Reset current response
+      let fullMessage = "";
       for await (const chunk of response) {
-        const newContent = chunk.choices[0]?.delta?.content || "";
-        setCurrentResponse(prev => prev + newContent);
-        // Update the current message in the messages array
+        fullMessage += chunk.choices[0]?.delta?.content || "";
         setMessages((prev) => prev.map(msg => 
-          msg.id === botMessageId ? { ...msg, content: msg.content + newContent } : msg
+          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
       }
-      setCurrentResponse(""); // Clear streaming state after completion
       
     } catch (error) {
       console.error('Error generating response:', error);
@@ -101,7 +91,13 @@ export function ChatContainer() {
                 timestamp={message.timestamp}
               />
             ))}
-            {/* Current response is now handled through the messages array */}
+            {currentResponse && (
+              <ChatBubble
+                message={currentResponse}
+                isUser={false}
+                timestamp={new Date().toLocaleTimeString()}
+              />
+            )}
             {!isModelLoaded && loadingProgress && (
               <div className="text-sm text-muted-foreground">
                 {loadingProgress}
