@@ -12,14 +12,21 @@ interface Message {
 }
 
 export function ChatContainer() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      content: "Hello! How can I help you today?",
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString(),
-    },
-  ]);
+  const { messageHistory } = useWebLLM();
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  // Convert context messages to UI messages on mount and when messageHistory changes
+  useEffect(() => {
+    const uiMessages = messageHistory
+      .filter(msg => msg.role !== "system") // Don't show system messages
+      .map((msg, index) => ({
+        id: index + 1,
+        content: msg.content,
+        isUser: msg.role === "user",
+        timestamp: new Date().toLocaleTimeString(),
+      }));
+    setMessages(uiMessages);
+  }, [messageHistory]);
   
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
