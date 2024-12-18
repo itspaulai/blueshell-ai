@@ -26,8 +26,9 @@ export function ChatContainer() {
   const [currentResponse, setCurrentResponse] = useState("");
 
   const handleSendMessage = async (content: string) => {
+    const newMessageId = Date.now();
     const userMessage: Message = {
-      id: messages.length + 1,
+      id: newMessageId,
       content,
       isUser: true,
       timestamp: new Date().toLocaleTimeString(),
@@ -35,7 +36,7 @@ export function ChatContainer() {
     
     setMessages((prev) => [...prev, userMessage]);
 
-    const botMessageId = messages.length + 2;
+    const botMessageId = newMessageId + 1;
     const initialBotMessage: Message = {
       id: botMessageId,
       content: isModelLoaded ? "" : "Loading AI model...",
