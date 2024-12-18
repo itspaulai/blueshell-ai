@@ -66,15 +66,17 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     abortControllerRef.current = new AbortController();
     setIsGenerating(true);
 
-    // Add user message to history
+    // Add user message to history before making the request
     const userMessage: Message = { role: "user", content: message };
-    setMessageHistory(prev => [...prev, userMessage]);
+    const updatedHistory = [...messageHistory, userMessage];
+    setMessageHistory(updatedHistory);
 
     try {
+      // Include message history in the request
       const request: webllm.ChatCompletionRequest = {
         stream: true,
         stream_options: { include_usage: true },
-        messages: [...messageHistory, userMessage],
+        messages: messageHistory,
         temperature: 0.8,
         max_tokens: 800,
       };
