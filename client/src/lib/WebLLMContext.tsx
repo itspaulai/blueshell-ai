@@ -31,7 +31,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [messageHistory, setMessageHistory] = useState<Message[]>([{
     role: "system",
-    content: "You are a helpful, respectful and honest assistant. Always maintain context of the conversation and provide direct, concise responses. If you reference previous messages, make it clear which part you're referring to.",
+    content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
   }]);
   const engineRef = useRef<webllm.MLCEngineInterface | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -74,11 +74,9 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       const request: webllm.ChatCompletionRequest = {
         stream: true,
         stream_options: { include_usage: true },
-        messages: [...messageHistory, userMessage].slice(-10), // Keep last 10 messages for context window
-        temperature: 0.7, // Slightly lower temperature for more focused responses
-        max_tokens: 1000, // Increased token limit for more detailed responses
-        presence_penalty: 0.5, // Add presence penalty to encourage diverse responses
-        frequency_penalty: 0.3, // Add frequency penalty to discourage repetition
+        messages: [...messageHistory, userMessage],
+        temperature: 0.8,
+        max_tokens: 800,
       };
 
       const response = await engineRef.current.chat.completions.create(request);

@@ -26,10 +26,6 @@ author = "agent"
 task = "workflow.run"
 args = "Start Dev Server"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Flask Server"
-
 [[workflows.workflow]]
 name = "Start Dev Server"
 author = "agent"
@@ -43,19 +39,4 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-waitForPort = 5173
-
-[[workflows.workflow]]
-name = "Flask Server"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5173
+waitForPort = 5000
