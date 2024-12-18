@@ -56,13 +56,16 @@ export function ChatContainer() {
       const response = await sendMessage(content);
       if (!response) return;
 
-      let fullMessage = "";
+      setCurrentResponse(""); // Reset current response
       for await (const chunk of response) {
-        fullMessage += chunk.choices[0]?.delta?.content || "";
+        const newContent = chunk.choices[0]?.delta?.content || "";
+        setCurrentResponse(prev => prev + newContent);
+        // Update the current message in the messages array
         setMessages((prev) => prev.map(msg => 
-          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
+          msg.id === botMessageId ? { ...msg, content: msg.content + newContent } : msg
         ));
       }
+      setCurrentResponse(""); // Clear streaming state after completion
       
     } catch (error) {
       console.error('Error generating response:', error);
@@ -98,13 +101,7 @@ export function ChatContainer() {
                 timestamp={message.timestamp}
               />
             ))}
-            {currentResponse && (
-              <ChatBubble
-                message={currentResponse}
-                isUser={false}
-                timestamp={new Date().toLocaleTimeString()}
-              />
-            )}
+            {/* Current response is now handled through the messages array */}
             {!isModelLoaded && loadingProgress && (
               <div className="text-sm text-muted-foreground">
                 {loadingProgress}
