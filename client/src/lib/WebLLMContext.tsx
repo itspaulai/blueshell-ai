@@ -74,7 +74,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       const request: webllm.ChatCompletionRequest = {
         stream: true,
         stream_options: { include_usage: true },
-        messages: [...messageHistory, userMessage],
+        messages: messageHistory,
         temperature: 0.8,
         max_tokens: 800,
       };
