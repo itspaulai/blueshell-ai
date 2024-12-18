@@ -75,7 +75,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         stream: true,
         stream_options: { include_usage: true },
         messages: [...messageHistory, userMessage],
-        temperature: 0.7,
+        temperature: 0.8,
         max_tokens: 800,
       };
 
