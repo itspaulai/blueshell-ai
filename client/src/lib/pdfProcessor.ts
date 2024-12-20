@@ -63,14 +63,14 @@ export async function processPDF(file: File, engine: webllm.MLCEngineInterface):
     const chunks = splitIntoChunks(fullText);
     console.log(`Created ${chunks.length} chunks`);
     
-    // Format chunks for embedding with Llama's format
-    const formattedChunks = chunks.map(chunk => `Represent this text for searching: ${chunk}`);
+    // Format chunks for embedding with Snowflake's format
+    const formattedChunks = chunks.map(chunk => `[CLS] ${chunk} [SEP]`);
     
     console.log('Generating embeddings...');
-    // Generate embeddings using the Llama model
+    // Generate embeddings using the Snowflake model
     const embeddings = await engine.embeddings.create({
       input: formattedChunks,
-      model: "Llama-3.2-3B-Instruct-q4f16_1-MLC"
+      model: "snowflake-arctic-embed-m-q0f32-MLC-b4"
     });
     console.log('Embeddings generated successfully');
 
@@ -81,7 +81,7 @@ export async function processPDF(file: File, engine: webllm.MLCEngineInterface):
     }));
   } catch (error) {
     console.error('Error in processPDF:', error);
-    throw new Error(`Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw error;
   }
 }
 
@@ -93,10 +93,10 @@ export function findRelevantChunks(
 ): Promise<string[]> {
   return new Promise(async (resolve) => {
     // Generate query embedding
-    const formattedQuery = `Represent this question for searching: ${query}`;
+    const formattedQuery = `[CLS] ${query} [SEP]`;
     const queryEmbedding = await engine.embeddings.create({
       input: [formattedQuery],
-      model: "Llama-3.2-3B-Instruct-q4f16_1-MLC"
+      model: "snowflake-arctic-embed-m-q0f32-MLC-b4"
     });
 
     // Calculate similarities and sort

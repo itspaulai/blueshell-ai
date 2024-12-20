@@ -51,7 +51,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         try {
             engineRef.current = await webllm.CreateWebWorkerMLCEngine(
                 new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
-                "Llama-3.2-3B-Instruct-q4f16_1-MLC",
+                ["Llama-3.2-3B-Instruct-q4f16_1-MLC", "snowflake-arctic-embed-m-q0f32-MLC-b4"],
                 { initProgressCallback }
             );
             setIsModelLoaded(true);
