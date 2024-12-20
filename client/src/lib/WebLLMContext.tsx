@@ -87,11 +87,22 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
 
         try {
             // Include message history in the request
+            // Ensure system message is first, followed by context and user message
+            const systemMessage = messageHistory.find(msg => msg.role === "system");
+            const nonSystemMessages = messageHistory.filter(msg => msg.role !== "system");
+            
             const request: webllm.ChatCompletionRequest = {
                 stream: true,
                 stream_options: { include_usage: true },
                 messages: [
-                    ...messageHistory,
+                    // System message must be first
+                    systemMessage || {
+                        role: "system",
+                        content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses."
+                    },
+                    // Include previous conversation context
+                    ...nonSystemMessages,
+                    // Add the current message with context if available
                     {
                         role: "user",
                         content: contextPrompt || message
