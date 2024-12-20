@@ -21,7 +21,7 @@ export function ChatContainer() {
     },
   ]);
   
-  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration, uploadPDF } = useWebLLM();
+  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [currentResponse, setCurrentResponse] = useState("");
@@ -142,19 +142,6 @@ export function ChatContainer() {
             onStop={interruptGeneration}
             disabled={isGenerating} 
             isGenerating={isGenerating}
-            onFileSelect={async (file) => {
-              try {
-                await uploadPDF(file);
-              } catch (error) {
-                console.error('Error uploading PDF:', error);
-                setMessages(prev => [...prev, {
-                  id: Date.now(),
-                  content: "Sorry, I encountered an error processing the PDF file. Please try again.",
-                  isUser: false,
-                  timestamp: new Date().toLocaleTimeString(),
-                }]);
-              }
-            }}
           />
         </div>
       </div>
