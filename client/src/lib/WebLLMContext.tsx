@@ -153,7 +153,15 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             ]);
         } catch (error) {
             console.error('Error processing PDF:', error);
-            throw error;
+            let errorMessage = 'An error occurred while processing the PDF';
+            if (error instanceof Error) {
+                if (error.message.includes('SpecifiedModelNotFoundError')) {
+                    errorMessage = 'Failed to initialize the AI model. Please try again.';
+                } else if (error.message.includes('PDF')) {
+                    errorMessage = 'Failed to process the PDF file. Please make sure it\'s a valid PDF.';
+                }
+            }
+            throw new Error(errorMessage);
         } finally {
             setLoadingProgress("");
         }
