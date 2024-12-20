@@ -33,6 +33,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type your message..."
           className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 bg-transparent h-12 text-base"
+          autoFocus
         />
       </div>
       {isGenerating ? (
