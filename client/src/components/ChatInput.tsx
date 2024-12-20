@@ -32,7 +32,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating, onFileSelect
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file && file.type === 'application/pdf') {
+              if (file && file.type === 'application/pdf' && onFileSelect) {
                 onFileSelect(file);
               }
             }}
