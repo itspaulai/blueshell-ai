@@ -30,9 +30,10 @@ export function ChatContainer() {
   const scrollToBottom = () => {
     if (contentRef.current && shouldAutoScroll) {
       const scrollContainer = contentRef.current;
+      const shouldSmoothScroll = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight > 500;
       scrollContainer.scrollTo({
         top: scrollContainer.scrollHeight,
-        behavior: "smooth"
+        behavior: shouldSmoothScroll ? "smooth" : "auto"
       });
     }
   };
@@ -107,13 +108,11 @@ export function ChatContainer() {
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full px-4" ref={scrollRef}>
-          <div 
-            className="max-w-3xl mx-auto py-6 overflow-y-auto"
-            ref={contentRef}
-            style={{ height: '100%' }}
-          >
+      <div 
+        className="flex-1 overflow-y-auto px-4"
+        ref={contentRef}
+      >
+        <div className="max-w-3xl mx-auto py-6">
             {messages.map((message) => (
               <ChatBubble
                 key={message.id}
@@ -135,7 +134,6 @@ export function ChatContainer() {
               </div>
             )}
           </div>
-        </ScrollArea>
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
