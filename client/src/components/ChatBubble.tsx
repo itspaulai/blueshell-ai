@@ -21,8 +21,8 @@ export function ChatBubble({ message, isUser }: ChatBubbleProps) {
 
   return (
     <div className="mb-8 animate-in fade-in slide-in-from-bottom-4">
-      <div className="text-base text-foreground pr-8 prose prose-sm dark:prose-invert max-w-none">
-        <ReactMarkdown className="whitespace-pre-wrap">
+      <div className="text-base text-foreground pr-8 prose prose-sm prose-p:my-1 dark:prose-invert max-w-none">
+        <ReactMarkdown>
           {message}
         </ReactMarkdown>
       </div>
