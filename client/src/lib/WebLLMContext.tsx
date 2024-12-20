@@ -9,12 +9,11 @@ interface Message {
 type WebLLMContextType = {
     isModelLoaded: boolean;
     loadingProgress: string;
-    sendMessage: (message: string, pdfContent?: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
+    sendMessage: (message: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
     isGenerating: boolean;
     interruptGeneration: () => void;
     messageHistory: Message[];
-    setMessageHistory: React.Dispatch<React.SetStateAction<Message[]>>;
-    setPdfContent: (content: string | null) => void;
+    setMessageHistory: React.Dispatch<React.SetStateAction<Message[]>>; // Add this line
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -28,7 +27,6 @@ export function useWebLLM() {
 }
 
 export function WebLLMProvider({ children }: { children: ReactNode }) {
-    const [pdfContent, setPdfContent] = useState<string | null>(null);
     const [isModelLoaded, setIsModelLoaded] = useState(false);
     const [loadingProgress, setLoadingProgress] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -56,7 +54,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const sendMessage = useCallback(async (message: string, pdfContent?: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
+    const sendMessage = useCallback(async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
         if (!engineRef.current && !isModelLoaded) {
             await initializeEngine();
         }
@@ -137,8 +135,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             isGenerating,
             interruptGeneration,
             messageHistory,
-            setMessageHistory,
-            setPdfContent
+            setMessageHistory // Provide setMessageHistory through the context
         }}>
             {children}
         </WebLLMContext.Provider>
