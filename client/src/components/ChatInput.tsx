@@ -35,6 +35,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
         onSend(`I just uploaded a PDF file named "${file.name}". Please analyze its content.`);
       } catch (error) {
         console.error("Error processing PDF:", error);
+        alert("Failed to process PDF. Please try again.");
       }
     }
     if (fileInputRef.current) {
