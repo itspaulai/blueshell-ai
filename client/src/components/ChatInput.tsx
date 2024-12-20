@@ -8,6 +8,7 @@ interface ChatInputProps {
   onStop?: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
+  onFileSelect?: (file: File) => void;
 }
 
 export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputProps) {
@@ -24,10 +25,23 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2">
       <div className="flex-1 flex items-center gap-2 rounded-lg bg-[#f1f4f9] px-2 h-12">
-        <Button type="button" variant="ghost" size="icon" className="h-10 w-10">
-          <PaperclipIcon className="h-7 w-7" />
-          <span className="sr-only">Attach file</span>
-        </Button>
+        <div className="relative">
+          <input
+            type="file"
+            accept=".pdf"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file && file.type === 'application/pdf') {
+                onFileSelect(file);
+              }
+            }}
+          />
+          <Button type="button" variant="ghost" size="icon" className="h-10 w-10">
+            <PaperclipIcon className="h-7 w-7" />
+            <span className="sr-only">Attach PDF file</span>
+          </Button>
+        </div>
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
