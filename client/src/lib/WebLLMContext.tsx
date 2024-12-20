@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useRef, ReactNode, useEffect } from 'react';
 import * as webllm from "@mlc-ai/web-llm";
+import { pdfEmbeddingHandler } from './pdfUtils';
 
 interface Message {
     role: "system" | "user" | "assistant";
@@ -13,7 +14,10 @@ type WebLLMContextType = {
     isGenerating: boolean;
     interruptGeneration: () => void;
     messageHistory: Message[];
-    setMessageHistory: React.Dispatch<React.SetStateAction<Message[]>>; // Add this line
+    setMessageHistory: React.Dispatch<React.SetStateAction<Message[]>>;
+    initializePDFContext: (file: File) => Promise<void>;
+    isPDFLoaded: boolean;
+    isPDFLoading: boolean;
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -30,6 +34,8 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     const [isModelLoaded, setIsModelLoaded] = useState(false);
     const [loadingProgress, setLoadingProgress] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isPDFLoaded, setIsPDFLoaded] = useState(false);
+    const [isPDFLoading, setIsPDFLoading] = useState(false);
     const [messageHistory, setMessageHistory] = useState<Message[]>([{
         role: "system",
         content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
@@ -67,6 +73,14 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         abortControllerRef.current = new AbortController();
         setIsGenerating(true);
 
+        let contextPrompt = "";
+        if (isPDFLoaded && pdfEmbeddingHandler.hasDocument()) {
+            const relevantChunks = await pdfEmbeddingHandler.searchSimilarChunks(message);
+            if (relevantChunks.length > 0) {
+                contextPrompt = `Here are relevant passages from the PDF document to help answer the question:\n\n${relevantChunks.join('\n\n')}\n\nBased on these passages, please answer the following question: ${message}`;
+            }
+        }
+
         // Add user message to history before making the request
         const userMessage: Message = { role: "user", content: message };
         setMessageHistory(prevHistory => [...prevHistory, userMessage]); // Update to use functional update
@@ -76,7 +90,13 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             const request: webllm.ChatCompletionRequest = {
                 stream: true,
                 stream_options: { include_usage: true },
-                messages: [...messageHistory, userMessage], // Use updated history directly
+                messages: [
+                    ...messageHistory,
+                    {
+                        role: "user",
+                        content: contextPrompt || message
+                    }
+                ],
                 temperature: 0.8,
                 max_tokens: 800,
             };
@@ -127,6 +147,35 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         }
       }, [isModelLoaded]);
 
+    const initializePDFContext = async (file: File) => {
+        try {
+            setIsPDFLoading(true);
+            if (!pdfEmbeddingHandler.isInitialized()) {
+                await pdfEmbeddingHandler.initialize((progress) => {
+                    setLoadingProgress(`Loading PDF embedding model: ${progress.text}`);
+                });
+            }
+            
+            const { extractTextFromPDF } = await import('./pdfUtils');
+            const textChunks = await extractTextFromPDF(file);
+            await pdfEmbeddingHandler.addDocument(textChunks);
+            
+            setIsPDFLoaded(true);
+            setMessageHistory(prev => [
+                ...prev,
+                {
+                    role: "system",
+                    content: `A PDF document has been loaded. You can now answer questions about its content. Always use the provided context to answer questions about the PDF.`,
+                },
+            ]);
+        } catch (error) {
+            console.error('Error initializing PDF context:', error);
+            throw error;
+        } finally {
+            setIsPDFLoading(false);
+        }
+    };
+
     return (
         <WebLLMContext.Provider value={{
             isModelLoaded,
@@ -135,7 +184,10 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             isGenerating,
             interruptGeneration,
             messageHistory,
-            setMessageHistory // Provide setMessageHistory through the context
+            setMessageHistory,
+            initializePDFContext,
+            isPDFLoaded,
+            isPDFLoading
         }}>
             {children}
         </WebLLMContext.Provider>
