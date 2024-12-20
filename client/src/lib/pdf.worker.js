@@ -1,1 +1,1 @@
-import 'pdfjs-dist/build/pdf.worker.entry';
+// This file is no longer needed and can be deleted

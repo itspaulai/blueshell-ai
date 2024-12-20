@@ -3,10 +3,8 @@ import * as webllm from "@mlc-ai/web-llm";
 import { InitProgressCallback } from "@mlc-ai/web-llm";
 
 // Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  './pdf.worker.js',
-  import.meta.url
-).toString();
+const workerUrl = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url);
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl.href;
 
 export interface DocumentChunk {
   text: string;
@@ -16,6 +14,8 @@ export interface DocumentChunk {
 // Function to extract text from PDF
 export async function extractTextFromPDF(file: File): Promise<string[]> {
   try {
+    console.log('Starting PDF extraction...');
+    console.log('Worker URL:', pdfjsLib.GlobalWorkerOptions.workerSrc);
     const arrayBuffer = await file.arrayBuffer();
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     
