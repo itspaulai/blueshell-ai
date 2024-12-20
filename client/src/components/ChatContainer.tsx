@@ -71,12 +71,34 @@ export function ChatContainer() {
   };
 
   useEffect(() => {
+    const scrollToBottom = () => {
+      if (scrollRef.current) {
+        const scrollElement = scrollRef.current;
+        const scrollHeight = scrollElement.scrollHeight;
+        const height = scrollElement.clientHeight;
+        const maxScrollTop = scrollHeight - height;
+        
+        scrollElement.scrollTo({
+          top: maxScrollTop,
+          behavior: "smooth",
+        });
+      }
+    };
+
+    // Scroll on new messages or response updates
+    scrollToBottom();
+
+    // Set up an observer to watch for content changes
+    const observer = new MutationObserver(scrollToBottom);
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
+      observer.observe(scrollRef.current, {
+        childList: true,
+        subtree: true,
+        characterData: true,
       });
     }
+
+    return () => observer.disconnect();
   }, [messages, currentResponse]);
 
   return (
