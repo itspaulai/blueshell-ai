@@ -1,0 +1,25 @@
+Failed to load module script: The server responded with a non-JavaScript MIME type of "text/html". Strict MIME type checking is enforced for module scripts per HTML spec.Understand this errorAI
+pdfjs-dist.js?v=a0836a80:431 Warning: Setting up fake worker.
+pdf.worker.min.js:1 Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of "text/html". Strict MIME type checking is enforced for module scripts per HTML spec.Understand this errorAI
+WebLLMContext.tsx:172 Error initializing PDF context: Error: Setting up fake worker failed: "Failed to fetch dynamically imported module: https://40d1c343-a87c-4fba-b8de-f70398f62384-00-drkt8up1uxn9.kirk.replit.dev/src/lib/pdfjs-dist/build/pdf.worker.min.js".
+    at pdfjs-dist.js?v=a0836a80:12292:36
+initializePDFContext @ WebLLMContext.tsx:172
+await in initializePDFContext
+handleFileSelect @ ChatInput.tsx:31
+callCallback2 @ chunk-RPCDYKBN.js?v=e0c9ab7b:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=e0c9ab7b:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=e0c9ab7b:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=e0c9ab7b:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=e0c9ab7b:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=e0c9ab7b:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=e0c9ab7b:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=e0c9ab7b:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=e0c9ab7b:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=e0c9ab7b:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=e0c9ab7b:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=e0c9ab7b:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=e0c9ab7b:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=e0c9ab7b:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=e0c9ab7b:5449Understand this errorAI
+ChatInput.tsx:33 Error processing PDF: Error: Setting up fake worker failed: "Failed to fetch dynamically imported module: https://40d1c343-a87c-4fba-b8de-f70398f62384-00-drkt8up1uxn9.kirk.replit.dev/src/lib/pdfjs-dist/build/pdf.worker.min.js".
+    at pdfjs-dist.js?v=a0836a80:12292:36

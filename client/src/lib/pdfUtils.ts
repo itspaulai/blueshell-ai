@@ -4,7 +4,7 @@ import { InitProgressCallback } from "@mlc-ai/web-llm";
 
 // Initialize PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
+  './pdf.worker.js',
   import.meta.url
 ).toString();
 
@@ -15,37 +15,51 @@ export interface DocumentChunk {
 
 // Function to extract text from PDF
 export async function extractTextFromPDF(file: File): Promise<string[]> {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const chunks: string[] = [];
-  
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const textContent = await page.getTextContent();
-    const text = textContent.items
-      .map((item: any) => item.str)
-      .join(' ')
-      .trim();
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     
-    // Split text into chunks of roughly 1000 characters
-    const words = text.split(' ');
-    let currentChunk = '';
+    // Add error handler
+    loadingTask.onProgress = function(data: { loaded: number; total: number }) {
+      console.log(`Loading PDF... ${Math.round((data.loaded / data.total) * 100)}%`);
+    };
+
+    const pdf = await loadingTask.promise;
+    const chunks: string[] = [];
     
-    for (const word of words) {
-      if (currentChunk.length + word.length > 1000) {
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const text = textContent.items
+        .map((item: any) => item.str)
+        .join(' ')
+        .trim();
+      
+      // Split text into chunks of roughly 1000 characters
+      const words = text.split(' ');
+      let currentChunk = '';
+      
+      for (const word of words) {
+        if (currentChunk.length + word.length > 1000) {
+          chunks.push(currentChunk.trim());
+          currentChunk = word;
+        } else {
+          currentChunk += ' ' + word;
+        }
+      }
+      
+      if (currentChunk.trim()) {
         chunks.push(currentChunk.trim());
-        currentChunk = word;
-      } else {
-        currentChunk += ' ' + word;
       }
     }
     
-    if (currentChunk.trim()) {
-      chunks.push(currentChunk.trim());
-    }
+    // Clean up
+    await pdf.destroy();
+    return chunks;
+  } catch (error) {
+    console.error('Error loading PDF:', error);
+    throw new Error('Failed to load and process PDF file. Please try again.');
   }
-  
-  return chunks;
 }
 
 // Class to handle embeddings and similarity search
