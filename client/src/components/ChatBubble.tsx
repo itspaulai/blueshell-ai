@@ -1,5 +1,6 @@
 
 import { cn } from "@/lib/utils";
+import ReactMarkdown from 'react-markdown';
 
 interface ChatBubbleProps {
   message: string;
@@ -12,7 +13,7 @@ export function ChatBubble({ message, isUser }: ChatBubbleProps) {
     return (
       <div className="mb-8 flex justify-end animate-in fade-in slide-in-from-bottom-4">
         <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-primary text-primary-foreground">
-          <p className="text-base">{message}</p>
+          <p className="text-base whitespace-pre-wrap">{message}</p>
         </div>
       </div>
     );
@@ -20,7 +21,11 @@ export function ChatBubble({ message, isUser }: ChatBubbleProps) {
 
   return (
     <div className="mb-8 animate-in fade-in slide-in-from-bottom-4">
-      <p className="text-base text-foreground pr-8">{message}</p>
+      <div className="text-base text-foreground pr-8 prose prose-sm dark:prose-invert max-w-none">
+        <ReactMarkdown className="whitespace-pre-wrap">
+          {message}
+        </ReactMarkdown>
+      </div>
     </div>
   );
 }
