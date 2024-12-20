@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaperclipIcon, SendIcon } from "lucide-react";
@@ -6,12 +6,14 @@ import { PaperclipIcon, SendIcon } from "lucide-react";
 interface ChatInputProps {
   onSend: (message: string) => void;
   onStop?: () => void;
+  onFileUpload?: (file: File) => void;
   disabled?: boolean;
   isGenerating?: boolean;
 }
 
-export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, onFileUpload, disabled, isGenerating }: ChatInputProps) {
   const [message, setMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,9 +26,27 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2">
       <div className="flex-1 flex items-center gap-2 rounded-lg bg-[#f1f4f9] px-2 h-12">
-        <Button type="button" variant="ghost" size="icon" className="h-10 w-10">
+        <input
+          type="file"
+          accept=".pdf"
+          className="hidden"
+          ref={fileInputRef}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file && onFileUpload) {
+              onFileUpload(file);
+            }
+          }}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10"
+          onClick={() => fileInputRef.current?.click()}
+        >
           <PaperclipIcon className="h-7 w-7" />
-          <span className="sr-only">Attach file</span>
+          <span className="sr-only">Upload PDF</span>
         </Button>
         <Input
           value={message}

@@ -3,6 +3,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
+import { extractTextFromPdf, processPdfContent, generateQueryContext } from "@/lib/pdfUtils";
+import { MemoryVectorStore } from "langchain/vectorstores/memory";
 
 interface Message {
   id: number;
@@ -21,11 +23,13 @@ export function ChatContainer() {
     },
   ]);
   
-  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
+  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration, engine } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [currentResponse, setCurrentResponse] = useState("");
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [pdfVectorStore, setPdfVectorStore] = useState<MemoryVectorStore | null>(null);
+  const [isPdfUploaded, setIsPdfUploaded] = useState(false);
 
   const scrollToBottom = () => {
     if (contentRef.current && shouldAutoScroll) {
@@ -35,6 +39,29 @@ export function ChatContainer() {
         top: scrollContainer.scrollHeight,
         behavior: shouldSmoothScroll ? "smooth" : "auto"
       });
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      const textContent = await extractTextFromPdf(file);
+      const vectorStore = await processPdfContent(engine, textContent);
+      setPdfVectorStore(vectorStore);
+      setIsPdfUploaded(true);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        content: `PDF "${file.name}" uploaded successfully. You can now ask questions about its content.`,
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString(),
+      }]);
+    } catch (error) {
+      console.error('Error processing PDF:', error);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        content: "Sorry, there was an error processing the PDF. Please try again.",
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString(),
+      }]);
     }
   };
 
@@ -60,7 +87,12 @@ export function ChatContainer() {
     setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
-      const response = await sendMessage(content);
+      let messageToSend = content;
+      if (isPdfUploaded && pdfVectorStore) {
+        const context = await generateQueryContext(pdfVectorStore, content);
+        messageToSend = `Context from PDF:\n${context}\n\nUser question: ${content}\n\nPlease answer the question based on the provided context.`;
+      }
+      const response = await sendMessage(messageToSend);
       if (!response) return;
 
       let fullMessage = "";
@@ -140,6 +172,7 @@ export function ChatContainer() {
           <ChatInput 
             onSend={handleSendMessage} 
             onStop={interruptGeneration}
+            onFileUpload={handleFileUpload}
             disabled={isGenerating} 
             isGenerating={isGenerating}
           />
