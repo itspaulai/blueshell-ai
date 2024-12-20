@@ -3,7 +3,10 @@ import * as webllm from "@mlc-ai/web-llm";
 import { InitProgressCallback } from "@mlc-ai/web-llm";
 
 // Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.js',
+  import.meta.url
+).toString();
 
 export interface DocumentChunk {
   text: string;
