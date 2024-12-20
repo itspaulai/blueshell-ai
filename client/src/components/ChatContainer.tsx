@@ -23,7 +23,19 @@ export function ChatContainer() {
   
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [currentResponse, setCurrentResponse] = useState("");
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
+  const scrollToBottom = () => {
+    if (contentRef.current && shouldAutoScroll) {
+      const scrollContainer = contentRef.current;
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  };
 
   const handleSendMessage = async (content: string) => {
     const newMessageId = Date.now();
@@ -56,6 +68,10 @@ export function ChatContainer() {
         setMessages((prev) => prev.map(msg => 
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
+        // Reset auto-scroll when new message starts generating
+        setShouldAutoScroll(true);
+        // Ensure smooth scrolling during generation
+        scrollToBottom();
       }
       
     } catch (error) {
@@ -71,19 +87,33 @@ export function ChatContainer() {
   };
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    }
+    scrollToBottom();
   }, [messages, currentResponse]);
+
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // If user scrolls up more than 100px from bottom, disable auto-scroll
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShouldAutoScroll(isNearBottom);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen">
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full px-4" ref={scrollRef}>
-          <div className="max-w-3xl mx-auto py-6">
+          <div 
+            className="max-w-3xl mx-auto py-6 overflow-y-auto"
+            ref={contentRef}
+            style={{ height: '100%' }}
+          >
             {messages.map((message) => (
               <ChatBubble
                 key={message.id}
