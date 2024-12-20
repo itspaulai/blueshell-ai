@@ -11,7 +11,7 @@ interface ChatInputProps {
   onFileSelect?: (file: File) => void;
 }
 
-export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, disabled, isGenerating, onFileSelect }: ChatInputProps) {
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
