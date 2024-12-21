@@ -49,37 +49,28 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    let isInitializing = false;
-    let interval: NodeJS.Timeout;
-
+    let isInitialized = false;
+    
     const initDB = async () => {
-      if (isInitializing) return;
-      isInitializing = true;
-
-      try {
-        await chatDB.init();
-        const existingConversations = await chatDB.getConversations();
-        setConversations(existingConversations);
-        
-        if (existingConversations.length === 0) {
-          const newId = await chatDB.createConversation();
-          setCurrentConversationId(newId);
-          const updatedConversations = await chatDB.getConversations();
-          setConversations(updatedConversations);
-        } else {
-          setCurrentConversationId(existingConversations[0].id);
-        }
-      } finally {
-        isInitializing = false;
+      if (isInitialized) return;
+      
+      await chatDB.init();
+      const existingConversations = await chatDB.getConversations();
+      setConversations(existingConversations);
+      
+      if (existingConversations.length === 0) {
+        const newId = await chatDB.createConversation();
+        const updatedConversations = await chatDB.getConversations();
+        setConversations(updatedConversations);
+        setCurrentConversationId(newId);
+      } else {
+        setCurrentConversationId(existingConversations[0].id);
       }
+      
+      isInitialized = true;
     };
     
     initDB();
-
-    // Set up refresh interval only after initialization
-    interval = setInterval(refreshConversations, 1000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const refreshConversations = async () => {
@@ -93,6 +84,11 @@ export default function ChatPage() {
     await refreshConversations();
   };
 
+  // Refresh conversations periodically to catch updates
+  useEffect(() => {
+    const interval = setInterval(refreshConversations, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="flex h-screen bg-white">
