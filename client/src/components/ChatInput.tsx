@@ -14,11 +14,11 @@ interface ChatInputProps {
 export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { initializePDFContext, isPDFLoading, isModelLoaded, loadingProgress } = useWebLLM();
+  const { initializePDFContext, isPDFLoading } = useWebLLM();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim() && !isGenerating && !isPDFLoading && !disabled && isModelLoaded && !loadingProgress) {
+    if (message.trim() && !isGenerating) {
       onSend(message);
       setMessage("");
     }
@@ -65,7 +65,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={isPDFLoading ? "Loading PDF..." : !isModelLoaded ? "Loading model..." : "Type your message..."}
+          placeholder={isPDFLoading ? "Loading PDF..." : "Type your message..."}
           className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 bg-transparent h-12 text-base"
           disabled={isPDFLoading}
           autoFocus
