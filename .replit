@@ -8,11 +8,15 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "cloudrun"
 build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+run = ["sh", "-c", "cd client && vite --host 0.0.0.0 --port 5173"]
 
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 5173
+externalPort = 5173
 
 [workflows]
 runButton = "Project"
@@ -24,10 +28,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start Dev Server"
+args = "Vite Dev Server"
 
 [[workflows.workflow]]
-name = "Start Dev Server"
+name = "Vite Dev Server"
 author = "agent"
 
 [workflows.workflow.metadata]
@@ -38,5 +42,5 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
+args = "cd client && vite --host 0.0.0.0 --port 5173"
+waitForPort = 5173
