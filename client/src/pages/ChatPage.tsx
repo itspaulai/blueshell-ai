@@ -49,28 +49,32 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    let isInitialized = false;
-    
     const initDB = async () => {
-      if (isInitialized) return;
-      
       await chatDB.init();
       const existingConversations = await chatDB.getConversations();
       setConversations(existingConversations);
       
       if (existingConversations.length === 0) {
         const newId = await chatDB.createConversation();
+        setCurrentConversationId(newId);
         const updatedConversations = await chatDB.getConversations();
         setConversations(updatedConversations);
-        setCurrentConversationId(newId);
       } else {
         setCurrentConversationId(existingConversations[0].id);
       }
-      
-      isInitialized = true;
     };
     
     initDB();
+
+    const interval = setInterval(async () => {
+      // Only refresh if we have already initialized
+      if (currentConversationId) {
+        const updatedConversations = await chatDB.getConversations();
+        setConversations(updatedConversations);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const refreshConversations = async () => {
@@ -84,11 +88,6 @@ export default function ChatPage() {
     await refreshConversations();
   };
 
-  // Refresh conversations periodically to catch updates
-  useEffect(() => {
-    const interval = setInterval(refreshConversations, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="flex h-screen bg-white">
