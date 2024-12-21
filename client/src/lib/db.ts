@@ -67,10 +67,12 @@ class ChatDB {
       if (!transaction) reject(new Error('Database not initialized'));
 
       const store = transaction!.objectStore(this.storeName);
-      const request = store.getAll();
+      const index = store.index('updatedAt');
+      const request = index.getAll();
 
       request.onsuccess = () => {
         const conversations = request.result;
+        // Sort by updatedAt in descending order (newest first)
         conversations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
         resolve(conversations);
       };

@@ -18,17 +18,25 @@ export default function ChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState<number | undefined>();
 
   useEffect(() => {
+    let isInitialized = false;
+    
     const initDB = async () => {
+      if (isInitialized) return;
+      
       await chatDB.init();
       const existingConversations = await chatDB.getConversations();
       setConversations(existingConversations);
       
       if (existingConversations.length === 0) {
         const newId = await chatDB.createConversation();
+        const updatedConversations = await chatDB.getConversations();
+        setConversations(updatedConversations);
         setCurrentConversationId(newId);
       } else {
         setCurrentConversationId(existingConversations[0].id);
       }
+      
+      isInitialized = true;
     };
     
     initDB();
