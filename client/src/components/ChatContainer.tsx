@@ -60,7 +60,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
     if (isFirstMessage) {
       // Get first 5 words or less from the message
       const title = content.split(' ').slice(0, 5).join(' ');
-      await chatDB.updateConversation(currentId, [userMessage], title, true);
+      await chatDB.updateConversation(currentId, [userMessage], title);
     }
 
     const botMessageId = newMessageId + 1;
@@ -122,9 +122,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
 
   useEffect(() => {
     if (conversationId && messages.length > 0) {
-      // Only update timestamp if there are new messages (not just loading)
-      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
-      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
+      chatDB.updateConversation(conversationId, messages);
     }
     scrollToBottom();
   }, [messages, currentResponse, conversationId]);
