@@ -49,39 +49,28 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    let mounted = true;
-    let initialized = false;
+    let isInitialized = false;
     
     const initDB = async () => {
-      if (!mounted || initialized) return;
+      if (isInitialized) return;
       
-      try {
-        await chatDB.init();
-        initialized = true;
-        const existingConversations = await chatDB.getConversations();
-        
-        if (!mounted) return;
-        
-        if (existingConversations.length === 0) {
-          const newId = await chatDB.createConversation();
-          if (!mounted) return;
-          const updatedConversations = await chatDB.getConversations();
-          if (!mounted) return;
-          setConversations(updatedConversations);
-          setCurrentConversationId(newId);
-        } else {
-          setConversations(existingConversations);
-          setCurrentConversationId(existingConversations[0].id);
-        }
-      } catch (error) {
-        console.error('Error initializing chat database:', error);
+      await chatDB.init();
+      const existingConversations = await chatDB.getConversations();
+      setConversations(existingConversations);
+      
+      if (existingConversations.length === 0) {
+        const newId = await chatDB.createConversation();
+        const updatedConversations = await chatDB.getConversations();
+        setConversations(updatedConversations);
+        setCurrentConversationId(newId);
+      } else {
+        setCurrentConversationId(existingConversations[0].id);
       }
+      
+      isInitialized = true;
     };
     
     initDB();
-    return () => {
-      mounted = false;
-    };
   }, []);
 
   const refreshConversations = async () => {
@@ -97,11 +86,9 @@ export default function ChatPage() {
 
   // Refresh conversations periodically to catch updates
   useEffect(() => {
-    const interval = setInterval(refreshConversations, 5000); // Reduced frequency to 5 seconds
-    return () => {
-      clearInterval(interval);
-    };
-  }, [currentConversationId]); // Only refresh when conversation changes
+    const interval = setInterval(refreshConversations, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="flex h-screen bg-white">
