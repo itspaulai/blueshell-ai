@@ -38,9 +38,12 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   };
 
   const handleSendMessage = async (content: string) => {
-    if (!conversationId) {
-      const newId = await chatDB.createConversation();
-      onConversationCreated?.(newId);
+    const isFirstMessage = messages.length === 0;
+    let currentId = conversationId;
+    
+    if (!currentId) {
+      currentId = await chatDB.createConversation();
+      onConversationCreated?.(currentId);
     }
     
     const newMessageId = Date.now();
@@ -52,6 +55,13 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
     };
     
     setMessages((prev) => [...prev, userMessage]);
+
+    // If this is the first message, update the conversation title
+    if (isFirstMessage) {
+      // Get first 5 words or less from the message
+      const title = content.split(' ').slice(0, 5).join(' ');
+      await chatDB.updateConversation(currentId, [userMessage], title);
+    }
 
     const botMessageId = newMessageId + 1;
     const initialBotMessage: Message = {

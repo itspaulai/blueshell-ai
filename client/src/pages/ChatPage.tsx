@@ -42,12 +42,22 @@ export default function ChatPage() {
     initDB();
   }, []);
 
-  const handleNewChat = async () => {
-    const newId = await chatDB.createConversation();
-    setCurrentConversationId(newId);
+  const refreshConversations = async () => {
     const updatedConversations = await chatDB.getConversations();
     setConversations(updatedConversations);
   };
+
+  const handleNewChat = async () => {
+    const newId = await chatDB.createConversation();
+    setCurrentConversationId(newId);
+    await refreshConversations();
+  };
+
+  // Refresh conversations periodically to catch updates
+  useEffect(() => {
+    const interval = setInterval(refreshConversations, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="flex h-screen bg-white">

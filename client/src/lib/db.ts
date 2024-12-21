@@ -93,7 +93,7 @@ class ChatDB {
     });
   }
 
-  async updateConversation(id: number, messages: ChatMessage[]): Promise<void> {
+  async updateConversation(id: number, messages: ChatMessage[], title?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const transaction = this.db?.transaction(this.storeName, 'readwrite');
       if (!transaction) reject(new Error('Database not initialized'));
@@ -105,6 +105,9 @@ class ChatDB {
         const conversation = request.result;
         if (conversation) {
           conversation.messages = messages;
+          if (title) {
+            conversation.title = title;
+          }
           conversation.updatedAt = new Date().toISOString();
           const updateRequest = store.put(conversation);
           updateRequest.onsuccess = () => resolve();
