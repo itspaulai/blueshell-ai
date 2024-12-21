@@ -3,6 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
+import { chatDB } from "@/lib/db";
 
 interface Message {
   id: number;
@@ -11,15 +12,13 @@ interface Message {
   timestamp: string;
 }
 
-export function ChatContainer() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      content: "Hello! How can I help you today?",
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString(),
-    },
-  ]);
+interface ChatContainerProps {
+  conversationId?: number;
+  onConversationCreated?: (id: number) => void;
+}
+
+export function ChatContainer({ conversationId, onConversationCreated }: ChatContainerProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
   
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -39,6 +38,11 @@ export function ChatContainer() {
   };
 
   const handleSendMessage = async (content: string) => {
+    if (!conversationId) {
+      const newId = await chatDB.createConversation();
+      onConversationCreated?.(newId);
+    }
+    
     const newMessageId = Date.now();
     const userMessage: Message = {
       id: newMessageId,
@@ -88,8 +92,30 @@ export function ChatContainer() {
   };
 
   useEffect(() => {
+    const loadConversation = async () => {
+      if (conversationId) {
+        const conversation = await chatDB.getConversation(conversationId);
+        if (conversation) {
+          setMessages(conversation.messages);
+        } else {
+          setMessages([{
+            id: Date.now(),
+            content: "Hello! How can I help you today?",
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString(),
+          }]);
+        }
+      }
+    };
+    loadConversation();
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (conversationId && messages.length > 0) {
+      chatDB.updateConversation(conversationId, messages);
+    }
     scrollToBottom();
-  }, [messages, currentResponse]);
+  }, [messages, currentResponse, conversationId]);
 
   useEffect(() => {
     const container = contentRef.current;

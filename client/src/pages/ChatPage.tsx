@@ -1,11 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChatContainer } from "@/components/ChatContainer";
 import { WebLLMProvider } from "@/lib/WebLLMContext";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, ChevronDownIcon, HelpCircleIcon, MessageCircleIcon } from "lucide-react";
+import { chatDB } from "@/lib/db";
+
+interface Conversation {
+  id: number;
+  title: string;
+  messages: any[];
+  updatedAt: string;
+}
 
 export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<number | undefined>();
+
+  useEffect(() => {
+    const initDB = async () => {
+      await chatDB.init();
+      const existingConversations = await chatDB.getConversations();
+      setConversations(existingConversations);
+      
+      if (existingConversations.length === 0) {
+        const newId = await chatDB.createConversation();
+        setCurrentConversationId(newId);
+      } else {
+        setCurrentConversationId(existingConversations[0].id);
+      }
+    };
+    
+    initDB();
+  }, []);
+
+  const handleNewChat = async () => {
+    const newId = await chatDB.createConversation();
+    setCurrentConversationId(newId);
+    const updatedConversations = await chatDB.getConversations();
+    setConversations(updatedConversations);
+  };
 
   return (
     <div className="flex h-screen bg-white">
@@ -19,7 +53,10 @@ export default function ChatPage() {
             <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${isSidebarOpen ? "rotate-90" : "-rotate-90"}`} />
           </Button>
         </div>
-        <Button className={`flex gap-2 mb-4 ${!isSidebarOpen && "px-0 justify-center"}`}>
+        <Button 
+          className={`flex gap-2 mb-4 ${!isSidebarOpen && "px-0 justify-center"}`}
+          onClick={handleNewChat}
+        >
           <PlusIcon className="h-4 w-4" />
           {isSidebarOpen && "New chat"}
         </Button>
@@ -28,26 +65,18 @@ export default function ChatPage() {
           <div className="space-y-1">
             {isSidebarOpen ? (
               <>
-                <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
-                  Newsletter
-                </Button>
-                <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
-                  Build Modern Chatbot
-                </Button>
-                <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
-                  Create Modern Tortoise App
-                </Button>
-                <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
-                  Trash Reminder Request
-                </Button>
-                <Button variant="ghost" className="w-full justify-start text-sm pl-3">
-                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
-                  Song Identification Request
-                </Button>
+                {conversations.map((conversation) => (
+                  <Button
+                    key={conversation.id}
+                    variant="ghost"
+                    className="w-full justify-start text-sm pl-3"
+                    onClick={() => setCurrentConversationId(conversation.id)}
+                    data-active={currentConversationId === conversation.id}
+                  >
+                    <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
+                    {conversation.title || 'New Chat'}
+                  </Button>
+                ))}
               </>
             ) : null}
           </div>
@@ -61,7 +90,10 @@ export default function ChatPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         <WebLLMProvider>
-          <ChatContainer />
+          <ChatContainer 
+            conversationId={currentConversationId}
+            onConversationCreated={setCurrentConversationId}
+          />
         </WebLLMProvider>
       </div>
     </div>
