@@ -56,7 +56,6 @@
     "input-otp": "^1.2.4",
     "lucide-react": "^0.453.0",
     "memorystore": "^1.6.7",
-    "openai": "^4.77.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pdfjs-dist": "^4.9.155",
