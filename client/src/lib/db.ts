@@ -72,8 +72,12 @@ class ChatDB {
 
       request.onsuccess = () => {
         const conversations = request.result;
-        // Sort by updatedAt in descending order (newest first)
-        conversations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        // Ensure proper date comparison by parsing strings to timestamps
+        conversations.sort((a, b) => {
+          const dateA = new Date(b.updatedAt).getTime();
+          const dateB = new Date(a.updatedAt).getTime();
+          return dateA - dateB;
+        });
         resolve(conversations);
       };
       request.onerror = () => reject(request.error);
