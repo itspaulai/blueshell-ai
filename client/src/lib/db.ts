@@ -72,12 +72,8 @@ class ChatDB {
 
       request.onsuccess = () => {
         const conversations = request.result;
-        // Ensure proper date comparison by parsing strings to timestamps
-        conversations.sort((a, b) => {
-          const dateA = new Date(b.updatedAt).getTime();
-          const dateB = new Date(a.updatedAt).getTime();
-          return dateA - dateB;
-        });
+        // Sort by updatedAt in descending order (newest first)
+        conversations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
         resolve(conversations);
       };
       request.onerror = () => reject(request.error);
@@ -108,22 +104,11 @@ class ChatDB {
       request.onsuccess = () => {
         const conversation = request.result;
         if (conversation) {
-          // Only update timestamp when adding new messages
-          const lastMessage = messages[messages.length - 1];
-          const hasNewMessage = lastMessage && (!conversation.messages.length || 
-            lastMessage.id !== conversation.messages[conversation.messages.length - 1].id);
-          const hasNewTitle = title && title !== conversation.title;
-          
           conversation.messages = messages;
           if (title) {
             conversation.title = title;
           }
-          
-          // Only update timestamp for new messages or title changes
-          if (hasNewMessage || hasNewTitle) {
-            conversation.updatedAt = new Date().toISOString();
-          }
-          
+          conversation.updatedAt = new Date().toISOString();
           const updateRequest = store.put(conversation);
           updateRequest.onsuccess = () => resolve();
           updateRequest.onerror = () => reject(updateRequest.error);

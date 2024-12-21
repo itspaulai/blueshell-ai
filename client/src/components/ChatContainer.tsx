@@ -120,10 +120,12 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
     loadConversation();
   }, [conversationId]);
 
-  // Only scroll effect, removed the conversation update as it's now handled directly in handleSendMessage
   useEffect(() => {
+    if (conversationId && messages.length > 0) {
+      chatDB.updateConversation(conversationId, messages);
+    }
     scrollToBottom();
-  }, [messages, currentResponse]);
+  }, [messages, currentResponse, conversationId]);
 
   useEffect(() => {
     const container = contentRef.current;
