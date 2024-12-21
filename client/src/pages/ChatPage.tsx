@@ -2,8 +2,12 @@ import { useState, useEffect } from "react";
 import { ChatContainer } from "@/components/ChatContainer";
 import { WebLLMProvider } from "@/lib/WebLLMContext";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ChevronDownIcon, HelpCircleIcon, MessageCircleIcon } from "lucide-react";
+import { PlusIcon, ChevronDownIcon, HelpCircleIcon, MessageCircleIcon, MoreVertical, Pencil, Trash } from "lucide-react";
 import { chatDB } from "@/lib/db";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface Conversation {
   id: number;
@@ -16,6 +20,33 @@ export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | undefined>();
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [conversationToRename, setConversationToRename] = useState<number | null>(null);
+  const [newTitle, setNewTitle] = useState("");
+
+  const handleDeleteConversation = async (id: number) => {
+    await chatDB.deleteConversation(id);
+    if (currentConversationId === id) {
+      const remainingConversations = conversations.filter(conv => conv.id !== id);
+      setCurrentConversationId(remainingConversations[0]?.id);
+    }
+    await refreshConversations();
+  };
+
+  const handleRenameConversation = async (id: number) => {
+    if (!newTitle.trim()) return;
+    await chatDB.renameConversation(id, newTitle.trim());
+    setIsRenameDialogOpen(false);
+    setNewTitle("");
+    setConversationToRename(null);
+    await refreshConversations();
+  };
+
+  const openRenameDialog = (id: number, currentTitle: string) => {
+    setConversationToRename(id);
+    setNewTitle(currentTitle);
+    setIsRenameDialogOpen(true);
+  };
 
   useEffect(() => {
     let isInitialized = false;
@@ -84,16 +115,55 @@ export default function ChatPage() {
             {isSidebarOpen ? (
               <>
                 {conversations.map((conversation) => (
-                  <Button
-                    key={conversation.id}
-                    variant="ghost"
-                    className="w-full justify-start text-sm pl-3"
-                    onClick={() => setCurrentConversationId(conversation.id)}
-                    data-active={currentConversationId === conversation.id}
-                  >
-                    <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
-                    {conversation.title || 'New Chat'}
-                  </Button>
+                  <div key={conversation.id} className="flex items-center group">
+                    <Button
+                      variant="ghost"
+                      className="flex-1 justify-start text-sm pl-3"
+                      onClick={() => setCurrentConversationId(conversation.id)}
+                      data-active={currentConversationId === conversation.id}
+                    >
+                      <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
+                      {conversation.title || 'New Chat'}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openRenameDialog(conversation.id, conversation.title)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Trash className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this conversation? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteConversation(conversation.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 ))}
               </>
             ) : null}
@@ -114,6 +184,38 @@ export default function ChatPage() {
           />
         </WebLLMProvider>
       </div>
+
+      {/* Rename Dialog */}
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Conversation</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Enter new title"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && conversationToRename) {
+                  handleRenameConversation(conversationToRename);
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => conversationToRename && handleRenameConversation(conversationToRename)}
+              disabled={!newTitle.trim()}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
