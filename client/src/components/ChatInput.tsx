@@ -18,7 +18,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim()) {
+    if (message.trim() && !isGenerating) {
       onSend(message);
       setMessage("");
     }
