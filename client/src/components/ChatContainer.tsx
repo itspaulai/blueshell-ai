@@ -3,7 +3,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
-import { chatDB } from "@/lib/db";
 
 interface Message {
   id: number;
@@ -12,13 +11,15 @@ interface Message {
   timestamp: string;
 }
 
-interface ChatContainerProps {
-  conversationId?: number;
-  onConversationCreated?: (id: number) => void;
-}
-
-export function ChatContainer({ conversationId, onConversationCreated }: ChatContainerProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export function ChatContainer() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      content: "Hello! How can I help you today?",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString(),
+    },
+  ]);
   
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -38,14 +39,6 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   };
 
   const handleSendMessage = async (content: string) => {
-    const isFirstMessage = messages.length === 0;
-    let currentId = conversationId;
-    
-    if (!currentId) {
-      currentId = await chatDB.createConversation();
-      onConversationCreated?.(currentId);
-    }
-    
     const newMessageId = Date.now();
     const userMessage: Message = {
       id: newMessageId,
@@ -55,13 +48,6 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
     };
     
     setMessages((prev) => [...prev, userMessage]);
-
-    // If this is the first message, update the conversation title
-    if (isFirstMessage) {
-      // Get first 5 words or less from the message
-      const title = content.split(' ').slice(0, 5).join(' ');
-      await chatDB.updateConversation(currentId, [userMessage], title, true);
-    }
 
     const botMessageId = newMessageId + 1;
     const initialBotMessage: Message = {
@@ -102,32 +88,8 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   };
 
   useEffect(() => {
-    const loadConversation = async () => {
-      if (conversationId) {
-        const conversation = await chatDB.getConversation(conversationId);
-        if (conversation) {
-          setMessages(conversation.messages);
-        } else {
-          setMessages([{
-            id: Date.now(),
-            content: "Hello! How can I help you today?",
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString(),
-          }]);
-        }
-      }
-    };
-    loadConversation();
-  }, [conversationId]);
-
-  useEffect(() => {
-    if (conversationId && messages.length > 0) {
-      // Only update timestamp when there's a new message (not when loading)
-      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
-      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
-    }
     scrollToBottom();
-  }, [messages, currentResponse, conversationId]);
+  }, [messages, currentResponse]);
 
   useEffect(() => {
     const container = contentRef.current;
