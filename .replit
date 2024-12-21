@@ -26,6 +26,10 @@ author = "agent"
 task = "workflow.run"
 args = "Start Dev Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "React Dev Server"
+
 [[workflows.workflow]]
 name = "Start Dev Server"
 author = "agent"
@@ -40,3 +44,18 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "React Dev Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run dev"
+waitForPort = 5173
