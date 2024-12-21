@@ -104,8 +104,10 @@ class ChatDB {
       request.onsuccess = () => {
         const conversation = request.result;
         if (conversation) {
-          // Only update timestamp if messages or title changed
-          const hasNewMessages = messages.length !== conversation.messages.length;
+          // Only update timestamp when adding new messages
+          const lastMessage = messages[messages.length - 1];
+          const hasNewMessage = lastMessage && (!conversation.messages.length || 
+            lastMessage.id !== conversation.messages[conversation.messages.length - 1].id);
           const hasNewTitle = title && title !== conversation.title;
           
           conversation.messages = messages;
@@ -114,7 +116,7 @@ class ChatDB {
           }
           
           // Only update timestamp for new messages or title changes
-          if (hasNewMessages || hasNewTitle) {
+          if (hasNewMessage || hasNewTitle) {
             conversation.updatedAt = new Date().toISOString();
           }
           
