@@ -14,7 +14,7 @@ interface ChatInputProps {
 export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { initializePDFContext, isPDFLoading } = useWebLLM();
+  const { initializePDFContext, isPDFLoading, isModelLoaded, loadingProgress } = useWebLLM();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,9 +65,13 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={isPDFLoading ? "Loading PDF..." : "Type your message..."}
+          placeholder={
+            !isModelLoaded ? loadingProgress : 
+            isPDFLoading ? "Loading PDF..." : 
+            "Type your message..."
+          }
           className="flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-0 bg-transparent h-12 text-base"
-          disabled={isPDFLoading}
+          disabled={!isModelLoaded || isPDFLoading}
           autoFocus
         />
       </div>
@@ -95,7 +99,12 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
           <span className="sr-only">Stop generating</span>
         </Button>
       ) : (
-        <Button type="submit" size="icon" disabled={!message.trim() || disabled} className="h-12 w-12">
+        <Button 
+          type="submit" 
+          size="icon" 
+          disabled={!message.trim() || disabled || !isModelLoaded || isPDFLoading} 
+          className="h-12 w-12"
+        >
           <SendIcon className="h-6 w-6" />
           <span className="sr-only">Send message</span>
         </Button>
