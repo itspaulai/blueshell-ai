@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { ChatContainer } from "@/components/ChatContainer";
 import { WebLLMProvider } from "@/lib/WebLLMContext";
 import { Button } from "@/components/ui/button";
@@ -48,58 +48,29 @@ export default function ChatPage() {
     setIsRenameDialogOpen(true);
   };
 
-  // Use a ref to track initialization state across renders
-  const isInitializedRef = useRef(false);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
+    let isInitialized = false;
+    
     const initDB = async () => {
-      // Prevent multiple initializations
-      if (isInitializedRef.current) return;
+      if (isInitialized) return;
       
-      try {
-        // Set initialization flag immediately to prevent concurrent initialization
-        isInitializedRef.current = true;
-        
-        await chatDB.init();
-        const existingConversations = await chatDB.getConversations();
-        
-        // Atomic update of conversations state
-        if (existingConversations.length === 0) {
-          // Create exactly one new conversation if none exist
-          const newId = await chatDB.createConversation();
-          // Fetch the newly created conversation
-          const conversations = await chatDB.getConversations();
-          // Update state only if we're still mounted and no other conversations were created
-          if (conversations.length === 1) {
-            setConversations(conversations);
-            setCurrentConversationId(newId);
-          }
-        } else {
-          setConversations(existingConversations);
-          setCurrentConversationId(existingConversations[0].id);
-        }
-        
-        // Start refresh interval only after successful initialization
-        refreshIntervalRef.current = setInterval(async () => {
-          const conversations = await chatDB.getConversations();
-          setConversations(conversations);
-        }, 1000);
-      } catch (error) {
-        console.error('Error initializing chat database:', error);
-        // Reset initialization flag on error so we can retry
-        isInitializedRef.current = false;
+      await chatDB.init();
+      const existingConversations = await chatDB.getConversations();
+      setConversations(existingConversations);
+      
+      if (existingConversations.length === 0) {
+        const newId = await chatDB.createConversation();
+        const updatedConversations = await chatDB.getConversations();
+        setConversations(updatedConversations);
+        setCurrentConversationId(newId);
+      } else {
+        setCurrentConversationId(existingConversations[0].id);
       }
+      
+      isInitialized = true;
     };
     
     initDB();
-    
-    return () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
-        refreshIntervalRef.current = null;
-      }
-    };
   }, []);
 
   const refreshConversations = async () => {
@@ -112,6 +83,12 @@ export default function ChatPage() {
     setCurrentConversationId(newId);
     await refreshConversations();
   };
+
+  // Refresh conversations periodically to catch updates
+  useEffect(() => {
+    const interval = setInterval(refreshConversations, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="flex h-screen bg-white">
