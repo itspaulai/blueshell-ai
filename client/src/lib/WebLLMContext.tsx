@@ -49,28 +49,14 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         };
 
         try {
-            console.log('Starting WebLLM initialization...');
-            const workerUrl = new URL('./webllm.worker.ts', import.meta.url);
-            console.log('Worker URL:', workerUrl.href);
-            
-            const worker = new Worker(workerUrl, { type: 'module' });
-            worker.onerror = (e) => {
-                console.error('Worker error:', e);
-            };
-            
             engineRef.current = await webllm.CreateWebWorkerMLCEngine(
-                worker,
-                "Llama-2-7b-chat-hf-q4f32_1",
-                { 
-                    initProgressCallback,
-                    required_features: ["webgpu"]
-                }
+                new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
+                "Llama-3.2-3B-Instruct-q4f16_1-MLC",
+                { initProgressCallback }
             );
-            console.log('WebLLM engine created successfully');
             setIsModelLoaded(true);
         } catch (error) {
             console.error('Failed to initialize WebLLM:', error);
-            setLoadingProgress(`Error loading model: ${error.message}`);
         }
     }, []);
 
