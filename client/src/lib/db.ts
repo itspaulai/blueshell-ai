@@ -93,6 +93,43 @@ class ChatDB {
     });
   }
 
+  async deleteConversation(id: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db?.transaction(this.storeName, 'readwrite');
+      if (!transaction) reject(new Error('Database not initialized'));
+
+      const store = transaction!.objectStore(this.storeName);
+      const request = store.delete(id);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async renameConversation(id: number, newTitle: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db?.transaction(this.storeName, 'readwrite');
+      if (!transaction) reject(new Error('Database not initialized'));
+
+      const store = transaction!.objectStore(this.storeName);
+      const request = store.get(id);
+
+      request.onsuccess = () => {
+        const conversation = request.result;
+        if (conversation) {
+          conversation.title = newTitle;
+          conversation.updatedAt = new Date().toISOString();
+          const updateRequest = store.put(conversation);
+          updateRequest.onsuccess = () => resolve();
+          updateRequest.onerror = () => reject(updateRequest.error);
+        } else {
+          reject(new Error('Conversation not found'));
+        }
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   async updateConversation(id: number, messages: ChatMessage[], title?: string, updateTimestamp: boolean = false): Promise<void> {
     return new Promise((resolve, reject) => {
       const transaction = this.db?.transaction(this.storeName, 'readwrite');

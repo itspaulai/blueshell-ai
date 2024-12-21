@@ -42,31 +42,51 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     }]);
     const engineRef = useRef<webllm.MLCEngineInterface | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const initializationInProgressRef = useRef(false);
 
     const initializeEngine = useCallback(async () => {
-        const initProgressCallback = (report: webllm.InitProgressReport) => {
-            setLoadingProgress(report.text);
-        };
+        // Return early if already initialized or in progress
+        if (engineRef.current || isModelLoaded || initializationInProgressRef.current) {
+            return;
+        }
 
+        initializationInProgressRef.current = true;
+        setLoadingProgress('Initializing model...');
+        
         try {
             engineRef.current = await webllm.CreateWebWorkerMLCEngine(
                 new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
                 "Llama-3.2-3B-Instruct-q4f16_1-MLC",
-                { initProgressCallback }
+                {
+                    initProgressCallback: (report: webllm.InitProgressReport) => {
+                        setLoadingProgress(report.text);
+                    },
+                    logLevel: "INFO",
+                }
             );
             setIsModelLoaded(true);
         } catch (error) {
             console.error('Failed to initialize WebLLM:', error);
+            setLoadingProgress('Failed to initialize model. Please refresh the page.');
+            throw error;
+        } finally {
+            initializationInProgressRef.current = false;
         }
-    }, []);
+    }, [isModelLoaded]);
+
+    // Initialize the model when the component mounts
+    useEffect(() => {
+        // Start initialization immediately
+        if (!isModelLoaded && !engineRef.current) {
+            initializeEngine().catch(error => {
+                console.error('Error initializing engine:', error);
+            });
+        }
+    }, [initializeEngine, isModelLoaded]);
 
     const sendMessage = useCallback(async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
-        if (!engineRef.current && !isModelLoaded) {
-            await initializeEngine();
-        }
-
         if (!engineRef.current) {
-            throw new Error("Engine not initialized");
+            throw new Error("Engine not initialized. Please wait for model to load.");
         }
 
         // Create a new AbortController for this request
@@ -139,7 +159,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             setIsGenerating(false);
             throw error;
         }
-    }, [isModelLoaded, initializeEngine, messageHistory]); // Add messageHistory to the dependency array
+    }, [isModelLoaded, messageHistory, isPDFLoaded]);
 
     const interruptGeneration = useCallback(() => {
         if (engineRef.current && isGenerating) {
@@ -156,7 +176,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
           }]);
         }
-      }, [isModelLoaded]);
+    }, [isModelLoaded]);
 
     const initializePDFContext = async (file: File) => {
         try {
