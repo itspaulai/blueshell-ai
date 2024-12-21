@@ -118,12 +118,12 @@ export default function ChatPage() {
                   <div key={conversation.id} className="flex items-center group">
                     <Button
                       variant="ghost"
-                      className="flex-1 justify-start text-sm pl-3"
+                      className="flex-1 justify-start text-sm pl-3 min-w-0"
                       onClick={() => setCurrentConversationId(conversation.id)}
                       data-active={currentConversationId === conversation.id}
                     >
                       <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
-                      {conversation.title || 'New Chat'}
+                      <span className="truncate">{conversation.title || 'New Chat'}</span>
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
