@@ -49,30 +49,35 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    let isInitializing = false;
+    let interval: NodeJS.Timeout;
+
     const initDB = async () => {
-      await chatDB.init();
-      const existingConversations = await chatDB.getConversations();
-      setConversations(existingConversations);
-      
-      if (existingConversations.length === 0) {
-        const newId = await chatDB.createConversation();
-        setCurrentConversationId(newId);
-        const updatedConversations = await chatDB.getConversations();
-        setConversations(updatedConversations);
-      } else {
-        setCurrentConversationId(existingConversations[0].id);
+      if (isInitializing) return;
+      isInitializing = true;
+
+      try {
+        await chatDB.init();
+        const existingConversations = await chatDB.getConversations();
+        setConversations(existingConversations);
+        
+        if (existingConversations.length === 0) {
+          const newId = await chatDB.createConversation();
+          setCurrentConversationId(newId);
+          const updatedConversations = await chatDB.getConversations();
+          setConversations(updatedConversations);
+        } else {
+          setCurrentConversationId(existingConversations[0].id);
+        }
+      } finally {
+        isInitializing = false;
       }
     };
     
     initDB();
 
-    const interval = setInterval(async () => {
-      // Only refresh if we have already initialized
-      if (currentConversationId) {
-        const updatedConversations = await chatDB.getConversations();
-        setConversations(updatedConversations);
-      }
-    }, 1000);
+    // Set up refresh interval only after initialization
+    interval = setInterval(refreshConversations, 1000);
 
     return () => clearInterval(interval);
   }, []);
