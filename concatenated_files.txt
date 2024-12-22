@@ -1,0 +1,31 @@
+
+// Contents from client/src/components/ui/* files:
+
+// avatar.tsx
+import * as React from "react"
+import * as AvatarPrimitive from "@radix-ui/react-avatar"
+import { cn } from "@/lib/utils"
+// ... (content continues)
+
+// card.tsx
+import * as React from "react"
+import { cn } from "@/lib/utils"
+// ... (content continues)
+
+// input.tsx
+import * as React from "react"
+import { cn } from "@/lib/utils"
+// ... (content continues)
+
+// Contents from client/src/lib/* files:
+
+// WebLLMContext.tsx
+import { createContext, useContext, useState, useCallback, useRef, ReactNode, useEffect } from 'react';
+import * as webllm from "@mlc-ai/web-llm";
+import { pdfEmbeddingHandler } from './pdfUtils';
+// ... (content continues)
+
+// utils.ts
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+// ... (content continues)
