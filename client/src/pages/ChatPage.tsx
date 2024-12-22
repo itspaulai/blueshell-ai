@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChatContainer } from "@/components/ChatContainer";
 import { WebLLMProvider } from "@/lib/WebLLMContext";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ export default function ChatPage() {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [conversationToRename, setConversationToRename] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
+
+  const isInitialized = useRef(false); // Initialization flag
 
   const handleDeleteConversation = async (id: number) => {
     await chatDB.deleteConversation(id);
@@ -49,39 +51,48 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    let isInitialized = false;
-    
     const initDB = async () => {
-      if (isInitialized) return;
-      
-      await chatDB.init();
-      const existingConversations = await chatDB.getConversations();
-      setConversations(existingConversations);
-      
-      if (existingConversations.length === 0) {
-        const newId = await chatDB.createConversation();
-        const updatedConversations = await chatDB.getConversations();
-        setConversations(updatedConversations);
-        setCurrentConversationId(newId);
-      } else {
-        setCurrentConversationId(existingConversations[0].id);
+      if (isInitialized.current) return; // Prevent multiple initializations
+      isInitialized.current = true; // Set the flag to true
+
+      try {
+        await chatDB.init();
+        const existingConversations = await chatDB.getConversations();
+        setConversations(existingConversations);
+
+        if (existingConversations.length === 0) {
+          const newId = await chatDB.createConversation();
+          const updatedConversations = await chatDB.getConversations();
+          setConversations(updatedConversations);
+          setCurrentConversationId(newId);
+        } else {
+          setCurrentConversationId(existingConversations[0].id);
+        }
+      } catch (error) {
+        console.error('Error initializing DB:', error);
       }
-      
-      isInitialized = true;
     };
-    
+
     initDB();
-  }, []);
+  }, []); // Empty dependency array ensures this runs once
 
   const refreshConversations = async () => {
-    const updatedConversations = await chatDB.getConversations();
-    setConversations(updatedConversations);
+    try {
+      const updatedConversations = await chatDB.getConversations();
+      setConversations(updatedConversations);
+    } catch (error) {
+      console.error('Error refreshing conversations:', error);
+    }
   };
 
   const handleNewChat = async () => {
-    const newId = await chatDB.createConversation();
-    setCurrentConversationId(newId);
-    await refreshConversations();
+    try {
+      const newId = await chatDB.createConversation();
+      setCurrentConversationId(newId);
+      await refreshConversations();
+    } catch (error) {
+      console.error('Error creating new conversation:', error);
+    }
   };
 
   // Refresh conversations periodically to catch updates
@@ -174,7 +185,7 @@ export default function ChatPage() {
           {isSidebarOpen && "Help"}
         </Button>
       </div>
-      
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         <WebLLMProvider>

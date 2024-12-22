@@ -24,7 +24,7 @@ class ChatDB {
       const request = indexedDB.open(this.dbName, this.version);
 
       request.onerror = () => reject(request.error);
-      
+
       request.onsuccess = () => {
         this.db = request.result;
         resolve();
@@ -41,6 +41,13 @@ class ChatDB {
   }
 
   async createConversation(title: string = 'New Chat'): Promise<number> {
+    // Check if a conversation with the same title already exists
+    const existingConversations = await this.getConversations();
+    if (existingConversations.some(conv => conv.title === title)) {
+      const existingConv = existingConversations.find(conv => conv.title === title);
+      if (existingConv) return existingConv.id;
+    }
+
     const conversation: Conversation = {
       id: Date.now(),
       title,
@@ -50,23 +57,32 @@ class ChatDB {
     };
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db?.transaction(this.storeName, 'readwrite');
-      if (!transaction) reject(new Error('Database not initialized'));
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
 
-      const store = transaction!.objectStore(this.storeName);
+      const transaction = this.db.transaction(this.storeName, 'readwrite');
+      const store = transaction.objectStore(this.storeName);
       const request = store.add(conversation);
 
       request.onsuccess = () => resolve(conversation.id);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        console.error('Error adding conversation:', request.error);
+        reject(request.error);
+      };
     });
   }
 
   async getConversations(): Promise<Conversation[]> {
     return new Promise((resolve, reject) => {
-      const transaction = this.db?.transaction(this.storeName, 'readonly');
-      if (!transaction) reject(new Error('Database not initialized'));
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
 
-      const store = transaction!.objectStore(this.storeName);
+      const transaction = this.db.transaction(this.storeName, 'readonly');
+      const store = transaction.objectStore(this.storeName);
       const index = store.index('updatedAt');
       const request = index.getAll();
 
@@ -76,29 +92,41 @@ class ChatDB {
         conversations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
         resolve(conversations);
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        console.error('Error fetching conversations:', request.error);
+        reject(request.error);
+      };
     });
   }
 
   async getConversation(id: number): Promise<Conversation | null> {
     return new Promise((resolve, reject) => {
-      const transaction = this.db?.transaction(this.storeName, 'readonly');
-      if (!transaction) reject(new Error('Database not initialized'));
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
 
-      const store = transaction!.objectStore(this.storeName);
+      const transaction = this.db.transaction(this.storeName, 'readonly');
+      const store = transaction.objectStore(this.storeName);
       const request = store.get(id);
 
       request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        console.error('Error fetching conversation:', request.error);
+        reject(request.error);
+      };
     });
   }
 
   async updateConversation(id: number, messages: ChatMessage[], title?: string, updateTimestamp: boolean = false): Promise<void> {
     return new Promise((resolve, reject) => {
-      const transaction = this.db?.transaction(this.storeName, 'readwrite');
-      if (!transaction) reject(new Error('Database not initialized'));
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
 
-      const store = transaction!.objectStore(this.storeName);
+      const transaction = this.db.transaction(this.storeName, 'readwrite');
+      const store = transaction.objectStore(this.storeName);
       const request = store.get(id);
 
       request.onsuccess = () => {
@@ -113,34 +141,49 @@ class ChatDB {
           }
           const updateRequest = store.put(conversation);
           updateRequest.onsuccess = () => resolve();
-          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onerror = () => {
+            console.error('Error updating conversation:', updateRequest.error);
+            reject(updateRequest.error);
+          };
         } else {
           reject(new Error('Conversation not found'));
         }
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        console.error('Error fetching conversation for update:', request.error);
+        reject(request.error);
+      };
     });
   }
 
   async deleteConversation(id: number): Promise<void> {
     return new Promise((resolve, reject) => {
-      const transaction = this.db?.transaction(this.storeName, 'readwrite');
-      if (!transaction) reject(new Error('Database not initialized'));
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
 
-      const store = transaction!.objectStore(this.storeName);
+      const transaction = this.db.transaction(this.storeName, 'readwrite');
+      const store = transaction.objectStore(this.storeName);
       const request = store.delete(id);
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        console.error('Error deleting conversation:', request.error);
+        reject(request.error);
+      };
     });
   }
 
   async renameConversation(id: number, newTitle: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const transaction = this.db?.transaction(this.storeName, 'readwrite');
-      if (!transaction) reject(new Error('Database not initialized'));
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
 
-      const store = transaction!.objectStore(this.storeName);
+      const transaction = this.db.transaction(this.storeName, 'readwrite');
+      const store = transaction.objectStore(this.storeName);
       const request = store.get(id);
 
       request.onsuccess = () => {
@@ -150,12 +193,18 @@ class ChatDB {
           conversation.updatedAt = new Date().toISOString();
           const updateRequest = store.put(conversation);
           updateRequest.onsuccess = () => resolve();
-          updateRequest.onerror = () => reject(updateRequest.error);
+          updateRequest.onerror = () => {
+            console.error('Error renaming conversation:', updateRequest.error);
+            reject(updateRequest.error);
+          };
         } else {
           reject(new Error('Conversation not found'));
         }
       };
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        console.error('Error fetching conversation for rename:', request.error);
+        reject(request.error);
+      };
     });
   }
 }
