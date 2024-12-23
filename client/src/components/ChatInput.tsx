@@ -61,14 +61,14 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
             type="button"
             variant="ghost"
             size="icon"
-            className="h-10 w-10"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isPDFLoading}
+            className={`h-10 w-10 ${uploadedFile ? 'cursor-default hover:bg-transparent' : ''}`}
+            onClick={() => !uploadedFile && fileInputRef.current?.click()}
+            disabled={isPDFLoading || uploadedFile}
           >
             {isPDFLoading ? (
               <Loader2 className="h-7 w-7 animate-spin" />
             ) : uploadedFile ? (
-              <CheckIcon className="h-7 w-7 text-green-500" />
+              <CheckIcon className="h-7 w-7 text-blue-500" />
             ) : (
               <PaperclipIcon className="h-7 w-7" />
             )}
