@@ -129,7 +129,7 @@ export default function ChatPage() {
                   <div key={conversation.id} className="flex items-center group">
                     <Button
                       variant="ghost"
-                      className="flex-1 justify-start text-sm pl-3 min-w-0 hover:bg-[#e9eef6] hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-[#e9eef6] active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-[#d3e3fd] data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground"
+                      className="flex-1 justify-start text-sm pl-3 min-w-0"
                       onClick={() => setCurrentConversationId(conversation.id)}
                       data-active={currentConversationId === conversation.id}
                     >
