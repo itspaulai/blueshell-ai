@@ -63,7 +63,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
             size="icon"
             className={`h-10 w-10 ${uploadedFile ? 'cursor-default hover:bg-transparent' : ''}`}
             onClick={() => !uploadedFile && fileInputRef.current?.click()}
-            disabled={isPDFLoading || uploadedFile}
+            disabled={isPDFLoading || !!uploadedFile}
           >
             {isPDFLoading ? (
               <Loader2 className="h-7 w-7 animate-spin" />
