@@ -126,12 +126,11 @@ export default function ChatPage() {
             {isSidebarOpen ? (
               <>
                 {conversations.map((conversation) => (
-                  <div key={conversation.id} className="flex items-center group">
+                  <div key={conversation.id} className="flex items-center group rounded-md hover:bg-[#e9eef6] data-[active=true]:bg-[#d3e3fd]" data-active={currentConversationId === conversation.id}>
                     <Button
                       variant="ghost"
-                      className="flex-1 justify-start text-sm pl-3 min-w-0"
+                      className="flex-1 justify-start text-sm pl-3 min-w-0 hover:bg-transparent"
                       onClick={() => setCurrentConversationId(conversation.id)}
-                      data-active={currentConversationId === conversation.id}
                     >
                       <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
                       <span className="truncate">{conversation.title || 'New Chat'}</span>
@@ -140,7 +139,7 @@ export default function ChatPage() {
                       <DropdownMenuTrigger asChild>
                         <Button 
                           variant="ghost" 
-                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100"
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:bg-transparent"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
