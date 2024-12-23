@@ -153,7 +153,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         <div className="max-w-3xl mx-auto py-6">
           {messages.length === 0 && (
             <div className="flex justify-center items-center h-[calc(100vh-200px)]">
-              <span className="text-4xl font-bold text-blue-500">Hello</span>
+              <span className="text-xl text-blue-500">Hello</span>
             </div>
           )}
             {messages.map((message) => (
