@@ -105,7 +105,7 @@ export default function ChatPage() {
     <div className="flex h-screen bg-white">
       {/* Sidebar */}
       <div className={`${
-        isSidebarOpen ? "w-[320px]" : "w-[60px]"
+        isSidebarOpen ? "w-[320px]" : "w-[75px]"
       } bg-[#f1f4f9] p-4 flex flex-col transition-all duration-300 ease-in-out`}>
         <div className="flex items-center justify-between mb-4">
           <h1 className={`text-xl font-semibold pl-3 ${!isSidebarOpen && "hidden"}`}>Blueshell</h1>
