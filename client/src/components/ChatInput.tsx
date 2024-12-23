@@ -13,9 +13,8 @@ interface ChatInputProps {
 
 export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputProps) {
   const [message, setMessage] = useState("");
-  const [fileName, setFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { initializePDFContext, isPDFLoading, isPDFLoaded } = useWebLLM();
+  const { initializePDFContext, isPDFLoading } = useWebLLM();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +28,9 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
     const file = e.target.files?.[0];
     if (file && file.type === "application/pdf") {
       try {
-        setFileName(file.name);
         await initializePDFContext(file);
       } catch (error) {
         console.error("Error processing PDF:", error);
-        setFileName(null);
       }
     } else if (file) {
       console.error("Please select a PDF file");
@@ -42,47 +39,29 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2">
-      <div className="flex flex-col flex-1">
-        {fileName && (
-          <div className="text-sm text-muted-foreground ml-12 mb-1">{fileName}</div>
-        )}
-        <div className="flex items-center gap-2 rounded-lg bg-[#f1f4f9] px-2 h-12">
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept=".pdf"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isPDFLoading}
-          >
-            {isPDFLoading ? (
-              <Loader2 className="h-7 w-7 animate-spin" />
-            ) : isPDFLoaded ? (
-              <svg
-                className="h-7 w-7 text-green-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            ) : (
-              <PaperclipIcon className="h-7 w-7" />
-            )}
-            <span className="sr-only">Attach PDF file</span>
-          </Button>
+      <div className="flex-1 flex items-center gap-2 rounded-lg bg-[#f1f4f9] px-2 h-12">
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".pdf"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isPDFLoading}
+        >
+          {isPDFLoading ? (
+            <Loader2 className="h-7 w-7 animate-spin" />
+          ) : (
+            <PaperclipIcon className="h-7 w-7" />
+          )}
+          <span className="sr-only">Attach PDF file</span>
+        </Button>
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
