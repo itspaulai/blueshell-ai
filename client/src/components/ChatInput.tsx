@@ -68,7 +68,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
             {isPDFLoading ? (
               <Loader2 className="h-7 w-7 animate-spin" />
             ) : uploadedFile ? (
-              <CheckIcon className="h-7 w-7 text-blue-500" />
+              <CheckIcon className="h-7 w-7 text-blue-700" />
             ) : (
               <PaperclipIcon className="h-7 w-7" />
             )}
