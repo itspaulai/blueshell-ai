@@ -87,13 +87,9 @@ export default function ChatPage() {
 
   const handleNewChat = async () => {
     try {
-      // Clear current conversation before creating new one
-      setMessages([]);
       const newId = await chatDB.createConversation();
       setCurrentConversationId(newId);
       await refreshConversations();
-      // Force messages array to be empty for new chat
-      await chatDB.updateConversation(newId, [], undefined, true);
     } catch (error) {
       console.error('Error creating new conversation:', error);
     }

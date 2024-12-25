@@ -106,17 +106,14 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       if (conversationId) {
         const conversation = await chatDB.getConversation(conversationId);
         if (conversation) {
-          // Only set welcome message if conversation is empty
-          if (conversation.messages.length === 0) {
-            setMessages([{
-              id: Date.now(),
-              content: "Hello! How can I help you today?",
-              isUser: false,
-              timestamp: new Date().toLocaleTimeString(),
-            }]);
-          } else {
-            setMessages(conversation.messages);
-          }
+          setMessages(conversation.messages);
+        } else {
+          setMessages([{
+            id: Date.now(),
+            content: "Hello! How can I help you today?",
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString(),
+          }]);
         }
       }
     };
