@@ -24,7 +24,7 @@ export default function ChatPage() {
   const [conversationToRename, setConversationToRename] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
 
-  const isInitialized = useRef(false);
+  const isInitialized = useRef(false); // Initialization flag
 
   const handleDeleteConversation = async (id: number) => {
     await chatDB.deleteConversation(id);
@@ -52,8 +52,8 @@ export default function ChatPage() {
 
   useEffect(() => {
     const initDB = async () => {
-      if (isInitialized.current) return;
-      isInitialized.current = true;
+      if (isInitialized.current) return; // Prevent multiple initializations
+      isInitialized.current = true; // Set the flag to true
 
       try {
         await chatDB.init();
@@ -74,7 +74,7 @@ export default function ChatPage() {
     };
 
     initDB();
-  }, []);
+  }, []); // Empty dependency array ensures this runs once
 
   const refreshConversations = async () => {
     try {
@@ -88,13 +88,14 @@ export default function ChatPage() {
   const handleNewChat = async () => {
     try {
       const newId = await chatDB.createConversation();
-      await refreshConversations();
       setCurrentConversationId(newId);
+      await refreshConversations();
     } catch (error) {
       console.error('Error creating new conversation:', error);
     }
   };
 
+  // Refresh conversations periodically to catch updates
   useEffect(() => {
     const interval = setInterval(refreshConversations, 1000);
     return () => clearInterval(interval);
