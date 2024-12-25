@@ -41,17 +41,10 @@ class ChatDB {
   }
 
   async createConversation(title: string = 'New Chat'): Promise<number> {
-    // Check if a conversation with the same title already exists
-    const existingConversations = await this.getConversations();
-    if (existingConversations.some(conv => conv.title === title)) {
-      const existingConv = existingConversations.find(conv => conv.title === title);
-      if (existingConv) return existingConv.id;
-    }
-
     const conversation: Conversation = {
       id: Date.now(),
       title,
-      messages: [],
+      messages: [], // Initialize with empty messages
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -132,7 +125,10 @@ class ChatDB {
       request.onsuccess = () => {
         const conversation = request.result;
         if (conversation) {
-          conversation.messages = messages;
+          // Only update messages if they are provided and not empty
+          if (messages && messages.length > 0) {
+            conversation.messages = messages;
+          }
           if (title) {
             conversation.title = title;
           }
