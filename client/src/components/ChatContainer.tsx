@@ -37,47 +37,49 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   };
 
   const handleSendMessage = async (content: string) => {
-    let currentId = conversationId;
-    const isNewChat = !currentId;
-
-    // Create new conversation only when sending the first message
-    if (isNewChat) {
-      currentId = await chatDB.createConversation();
-      onConversationCreated?.(currentId);
-    }
-
-    const newMessageId = Date.now();
-    const userMessage: Message = {
-      id: newMessageId,
-      content,
-      isUser: true,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-
-    // Update messages state with user message
-    setMessages(prevMessages => [...prevMessages, userMessage]);
-
-    // Update conversation title with first message for new chats
-    if (isNewChat) {
-      const title = content.split(' ').slice(0, 5).join(' ');
-      await chatDB.updateConversation(currentId, [userMessage], title, true);
-    } else {
-      // Update conversation with user message
-      await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
-    }
-
-    const botMessageId = newMessageId + 1;
-    const initialBotMessage: Message = {
-      id: botMessageId,
-      content: isModelLoaded ? "" : "Loading AI model...",
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-
-    // Add initial bot message to UI
-    setMessages(prevMessages => [...prevMessages, initialBotMessage]);
-
     try {
+      let activeConversationId = conversationId;
+      const isNewChat = !activeConversationId;
+
+      // Create new conversation only when sending the first message
+      if (isNewChat) {
+        activeConversationId = await chatDB.createConversation();
+        if (!activeConversationId) {
+          throw new Error('Failed to create new conversation');
+        }
+        onConversationCreated?.(activeConversationId);
+      }
+
+      const newMessageId = Date.now();
+      const userMessage: Message = {
+        id: newMessageId,
+        content,
+        isUser: true,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+
+      // Update messages state with user message
+      setMessages(prevMessages => [...prevMessages, userMessage]);
+
+      // Update conversation in DB
+      if (isNewChat) {
+        const title = content.split(' ').slice(0, 5).join(' ');
+        await chatDB.updateConversation(activeConversationId, [userMessage], title, true);
+      } else if (activeConversationId) {
+        await chatDB.updateConversation(activeConversationId, [...messages, userMessage], undefined, true);
+      }
+
+      const botMessageId = newMessageId + 1;
+      const initialBotMessage: Message = {
+        id: botMessageId,
+        content: isModelLoaded ? "" : "Loading AI model...",
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+
+      // Add initial bot message to UI
+      setMessages(prevMessages => [...prevMessages, initialBotMessage]);
+
       const response = await sendMessage(content);
       if (!response) return;
 
@@ -96,17 +98,13 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         scrollToBottom();
       }
 
-      // Get the final messages state
-      const updatedMessages = messages.map(msg => 
-        msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
-      );
-
-      // Update conversation in DB with final state
-      if (currentId) {
-        await chatDB.updateConversation(currentId, updatedMessages, undefined, true);
+      // Get the final messages state and update DB
+      if (activeConversationId) {
+        const updatedMessages = [...messages, userMessage, { ...initialBotMessage, content: fullMessage }];
+        await chatDB.updateConversation(activeConversationId, updatedMessages, undefined, true);
       }
     } catch (error) {
-      console.error('Error generating response:', error);
+      console.error('Error in handleSendMessage:', error);
       const errorMessage: Message = {
         id: Date.now(),
         content: "I apologize, but I encountered an error. Please try again.",
@@ -115,9 +113,9 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       };
       setMessages(prevMessages => [...prevMessages, errorMessage]);
 
-      // Update conversation with error message
-      if (currentId) {
-        await chatDB.updateConversation(currentId, [...messages, errorMessage], undefined, true);
+      // Update conversation with error message if we have an active conversation
+      if (conversationId) {
+        await chatDB.updateConversation(conversationId, [...messages, errorMessage], undefined, true);
       }
     }
   };
