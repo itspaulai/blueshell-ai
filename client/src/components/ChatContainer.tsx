@@ -19,7 +19,6 @@ interface ChatContainerProps {
 
 export function ChatContainer({ conversationId, onConversationCreated }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -38,14 +37,14 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   };
 
   const handleSendMessage = async (content: string) => {
-    const isFirstMessage = messages.length === 0;
     let currentId = conversationId;
-    
+
+    // Create new conversation only when sending the first message
     if (!currentId) {
       currentId = await chatDB.createConversation();
       onConversationCreated?.(currentId);
     }
-    
+
     const newMessageId = Date.now();
     const userMessage: Message = {
       id: newMessageId,
@@ -53,12 +52,11 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       isUser: true,
       timestamp: new Date().toLocaleTimeString(),
     };
-    
+
     setMessages((prev) => [...prev, userMessage]);
 
-    // If this is the first message, update the conversation title
-    if (isFirstMessage) {
-      // Get first 5 words or less from the message
+    // Update conversation title with first message
+    if (messages.length === 0) {
       const title = content.split(' ').slice(0, 5).join(' ');
       await chatDB.updateConversation(currentId, [userMessage], title, true);
     }
@@ -70,7 +68,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       isUser: false,
       timestamp: new Date().toLocaleTimeString(),
     };
-    
+
     setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
@@ -83,16 +81,18 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         setMessages((prev) => prev.map(msg => 
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
-        // Reset auto-scroll when new message starts generating
         setShouldAutoScroll(true);
-        // Ensure smooth scrolling during generation
         scrollToBottom();
       }
-      
+
+      // Update conversation in DB with all messages
+      if (currentId) {
+        await chatDB.updateConversation(currentId, [...messages, { ...initialBotMessage, content: fullMessage }], undefined, true);
+      }
     } catch (error) {
       console.error('Error generating response:', error);
       const errorMessage: Message = {
-        id: messages.length + 2,
+        id: Date.now(),
         content: "I apologize, but I encountered an error. Please try again.",
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
@@ -108,13 +108,11 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         if (conversation) {
           setMessages(conversation.messages);
         } else {
-          setMessages([{
-            id: Date.now(),
-            content: "Hello! How can I help you today?",
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString(),
-          }]);
+          setMessages([]);
         }
+      } else {
+        // Clear messages for new chat
+        setMessages([]);
       }
     };
     loadConversation();
@@ -156,27 +154,27 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
               <span className="text-4xl font-bold text-blue-500">Hello</span>
             </div>
           )}
-            {messages.map((message) => (
-              <ChatBubble
-                key={message.id}
-                message={message.content}
-                isUser={message.isUser}
-                timestamp={message.timestamp}
-              />
-            ))}
-            {currentResponse && (
-              <ChatBubble
-                message={currentResponse}
-                isUser={false}
-                timestamp={new Date().toLocaleTimeString()}
-              />
-            )}
-            {!isModelLoaded && loadingProgress && (
-              <div className="text-sm text-muted-foreground">
-                {loadingProgress}
-              </div>
-            )}
-          </div>
+          {messages.map((message) => (
+            <ChatBubble
+              key={message.id}
+              message={message.content}
+              isUser={message.isUser}
+              timestamp={message.timestamp}
+            />
+          ))}
+          {currentResponse && (
+            <ChatBubble
+              message={currentResponse}
+              isUser={false}
+              timestamp={new Date().toLocaleTimeString()}
+            />
+          )}
+          {!isModelLoaded && loadingProgress && (
+            <div className="text-sm text-muted-foreground">
+              {loadingProgress}
+            </div>
+          )}
+        </div>
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
