@@ -38,9 +38,10 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
 
   const handleSendMessage = async (content: string) => {
     let currentId = conversationId;
+    const isNewChat = !currentId;
 
     // Create new conversation only when sending the first message
-    if (!currentId) {
+    if (isNewChat) {
       currentId = await chatDB.createConversation();
       onConversationCreated?.(currentId);
     }
@@ -53,12 +54,16 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    // Update messages state with user message
+    setMessages(prevMessages => [...prevMessages, userMessage]);
 
-    // Update conversation title with first message
-    if (messages.length === 0) {
+    // Update conversation title with first message for new chats
+    if (isNewChat) {
       const title = content.split(' ').slice(0, 5).join(' ');
       await chatDB.updateConversation(currentId, [userMessage], title, true);
+    } else {
+      // Update conversation with user message
+      await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
     }
 
     const botMessageId = newMessageId + 1;
@@ -69,7 +74,8 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, initialBotMessage]);
+    // Add initial bot message to UI
+    setMessages(prevMessages => [...prevMessages, initialBotMessage]);
 
     try {
       const response = await sendMessage(content);
@@ -78,16 +84,26 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       let fullMessage = "";
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
-        setMessages((prev) => prev.map(msg => 
-          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
-        ));
+
+        // Update messages state with new content
+        setMessages(prevMessages => 
+          prevMessages.map(msg => 
+            msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
+          )
+        );
+
         setShouldAutoScroll(true);
         scrollToBottom();
       }
 
-      // Update conversation in DB with all messages
+      // Get the final messages state
+      const updatedMessages = messages.map(msg => 
+        msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
+      );
+
+      // Update conversation in DB with final state
       if (currentId) {
-        await chatDB.updateConversation(currentId, [...messages, { ...initialBotMessage, content: fullMessage }], undefined, true);
+        await chatDB.updateConversation(currentId, updatedMessages, undefined, true);
       }
     } catch (error) {
       console.error('Error generating response:', error);
@@ -97,7 +113,12 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
+
+      // Update conversation with error message
+      if (currentId) {
+        await chatDB.updateConversation(currentId, [...messages, errorMessage], undefined, true);
+      }
     }
   };
 
@@ -119,21 +140,11 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   }, [conversationId]);
 
   useEffect(() => {
-    if (conversationId && messages.length > 0) {
-      // Only update timestamp when there's a new message (not when loading)
-      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
-      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
-    }
-    scrollToBottom();
-  }, [messages, currentResponse, conversationId]);
-
-  useEffect(() => {
     const container = contentRef.current;
     if (!container) return;
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      // If user scrolls up more than 100px from bottom, disable auto-scroll
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setShouldAutoScroll(isNearBottom);
     };
