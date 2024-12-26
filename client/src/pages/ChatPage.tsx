@@ -52,21 +52,28 @@ export default function ChatPage() {
 
   useEffect(() => {
     const initDB = async () => {
-      if (isInitialized.current) return; // Prevent multiple initializations
-      isInitialized.current = true; // Set the flag to true
+      if (isInitialized.current) return;
+      isInitialized.current = true;
 
       try {
         await chatDB.init();
         const existingConversations = await chatDB.getConversations();
         setConversations(existingConversations);
 
+        const currentIdFromUrl = new URLSearchParams(window.location.search).get('id');
+        const currentId = currentIdFromUrl ? parseInt(currentIdFromUrl) : undefined;
+
         if (existingConversations.length === 0) {
           const newId = await chatDB.createConversation();
           const updatedConversations = await chatDB.getConversations();
           setConversations(updatedConversations);
           setCurrentConversationId(newId);
+          window.history.replaceState(null, '', `?id=${newId}`);
+        } else if (currentId && existingConversations.some(conv => conv.id === currentId)) {
+          setCurrentConversationId(currentId);
         } else {
           setCurrentConversationId(existingConversations[0].id);
+          window.history.replaceState(null, '', `?id=${existingConversations[0].id}`);
         }
       } catch (error) {
         console.error('Error initializing DB:', error);
@@ -74,7 +81,7 @@ export default function ChatPage() {
     };
 
     initDB();
-  }, []); // Empty dependency array ensures this runs once
+  }, []);
 
   const refreshConversations = async () => {
     try {
@@ -88,6 +95,7 @@ export default function ChatPage() {
   const handleNewChat = async () => {
     try {
       const newId = await chatDB.createConversation();
+      window.history.pushState(null, '', `?id=${newId}`);
       setCurrentConversationId(newId);
       await refreshConversations();
     } catch (error) {
