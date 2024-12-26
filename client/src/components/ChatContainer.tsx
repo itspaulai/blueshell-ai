@@ -15,9 +15,10 @@ interface Message {
 interface ChatContainerProps {
   conversationId?: number;
   onConversationCreated?: (id: number) => void;
+  onConversationDeleted?: (id: number) => void; // Added for deleting empty conversations
 }
 
-export function ChatContainer({ conversationId, onConversationCreated }: ChatContainerProps) {
+export function ChatContainer({ conversationId, onConversationCreated, onConversationDeleted }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
@@ -38,14 +39,15 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   };
 
   const handleSendMessage = async (content: string) => {
-    const isFirstMessage = messages.length === 0;
+    if (!content.trim()) return;
+
+    // Create a new conversation if none exists
     let currentId = conversationId;
-    
     if (!currentId) {
       currentId = await chatDB.createConversation();
       onConversationCreated?.(currentId);
     }
-    
+
     const newMessageId = Date.now();
     const userMessage: Message = {
       id: newMessageId,
@@ -57,7 +59,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
     setMessages((prev) => [...prev, userMessage]);
 
     // If this is the first message, update the conversation title
-    if (isFirstMessage) {
+    if (messages.length === 1) { // Check if it's truly the first message
       // Get first 5 words or less from the message
       const title = content.split(' ').slice(0, 5).join(' ');
       await chatDB.updateConversation(currentId, [userMessage], title, true);
@@ -121,10 +123,16 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   }, [conversationId]);
 
   useEffect(() => {
-    if (conversationId && messages.length > 0) {
-      // Only update timestamp when there's a new message (not when loading)
-      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
-      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
+    if (conversationId) {
+      if (messages.length > 0) {
+        // Only update timestamp when there's a new message (not when loading)
+        const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
+        chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
+      } else {
+        // Delete conversation if empty
+        chatDB.deleteConversation(conversationId);
+        onConversationDeleted?.(conversationId);
+      }
     }
     scrollToBottom();
   }, [messages, currentResponse, conversationId]);
