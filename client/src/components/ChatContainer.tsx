@@ -19,9 +19,11 @@ interface ChatContainerProps {
 
 export function ChatContainer({ conversationId, onConversationCreated }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
+  
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [currentResponse, setCurrentResponse] = useState("");
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   const scrollToBottom = () => {
@@ -38,12 +40,12 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   const handleSendMessage = async (content: string) => {
     const isFirstMessage = messages.length === 0;
     let currentId = conversationId;
-
+    
     if (!currentId) {
       currentId = await chatDB.createConversation();
       onConversationCreated?.(currentId);
     }
-
+    
     const newMessageId = Date.now();
     const userMessage: Message = {
       id: newMessageId,
@@ -51,14 +53,14 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       isUser: true,
       timestamp: new Date().toLocaleTimeString(),
     };
-
+    
     setMessages((prev) => [...prev, userMessage]);
 
+    // If this is the first message, update the conversation title
     if (isFirstMessage) {
+      // Get first 5 words or less from the message
       const title = content.split(' ').slice(0, 5).join(' ');
       await chatDB.updateConversation(currentId, [userMessage], title, true);
-    } else {
-      await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
     }
 
     const botMessageId = newMessageId + 1;
@@ -68,7 +70,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       isUser: false,
       timestamp: new Date().toLocaleTimeString(),
     };
-
+    
     setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
@@ -81,18 +83,16 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         setMessages((prev) => prev.map(msg => 
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
+        // Reset auto-scroll when new message starts generating
         setShouldAutoScroll(true);
+        // Ensure smooth scrolling during generation
         scrollToBottom();
       }
-
-      // Update conversation with final bot message
-      const updatedMessages = messages.concat([userMessage, { ...initialBotMessage, content: fullMessage }]);
-      await chatDB.updateConversation(currentId, updatedMessages, undefined, true);
-
+      
     } catch (error) {
       console.error('Error generating response:', error);
       const errorMessage: Message = {
-        id: Date.now(),
+        id: messages.length + 2,
         content: "I apologize, but I encountered an error. Please try again.",
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
@@ -105,13 +105,16 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
     const loadConversation = async () => {
       if (conversationId) {
         const conversation = await chatDB.getConversation(conversationId);
-        if (conversation && conversation.messages.length > 0) {
+        if (conversation) {
           setMessages(conversation.messages);
         } else {
-          setMessages([]); // Start with an empty chat for new conversations
+          setMessages([{
+            id: Date.now(),
+            content: "Hello! How can I help you today?",
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString(),
+          }]);
         }
-      } else {
-        setMessages([]); // Reset messages when no conversation is selected
       }
     };
     loadConversation();
@@ -119,10 +122,12 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
 
   useEffect(() => {
     if (conversationId && messages.length > 0) {
-      chatDB.updateConversation(conversationId, messages, undefined, true);
+      // Only update timestamp when there's a new message (not when loading)
+      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
+      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
     }
     scrollToBottom();
-  }, [messages, conversationId]);
+  }, [messages, currentResponse, conversationId]);
 
   useEffect(() => {
     const container = contentRef.current;
@@ -130,6 +135,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
+      // If user scrolls up more than 100px from bottom, disable auto-scroll
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setShouldAutoScroll(isNearBottom);
     };
@@ -147,23 +153,30 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         <div className="max-w-3xl mx-auto py-6">
           {messages.length === 0 && (
             <div className="flex justify-center items-center h-[calc(100vh-200px)]">
-              <span className="text-4xl font-bold text-blue-500">Start a new chat</span>
+              <span className="text-4xl font-bold text-blue-500">Hello</span>
             </div>
           )}
-          {messages.map((message) => (
-            <ChatBubble
-              key={message.id}
-              message={message.content}
-              isUser={message.isUser}
-              timestamp={message.timestamp}
-            />
-          ))}
-          {!isModelLoaded && loadingProgress && (
-            <div className="text-sm text-muted-foreground">
-              {loadingProgress}
-            </div>
-          )}
-        </div>
+            {messages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                message={message.content}
+                isUser={message.isUser}
+                timestamp={message.timestamp}
+              />
+            ))}
+            {currentResponse && (
+              <ChatBubble
+                message={currentResponse}
+                isUser={false}
+                timestamp={new Date().toLocaleTimeString()}
+              />
+            )}
+            {!isModelLoaded && loadingProgress && (
+              <div className="text-sm text-muted-foreground">
+                {loadingProgress}
+              </div>
+            )}
+          </div>
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">

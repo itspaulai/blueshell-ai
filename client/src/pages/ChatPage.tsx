@@ -23,37 +23,25 @@ export default function ChatPage() {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [conversationToRename, setConversationToRename] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
-  const isInitialized = useRef(false);
+
+  const isInitialized = useRef(false); // Initialization flag
 
   const handleDeleteConversation = async (id: number) => {
-    try {
-      await chatDB.deleteConversation(id);
-      if (currentConversationId === id) {
-        const remainingConversations = conversations.filter(conv => conv.id !== id);
-        if (remainingConversations.length > 0) {
-          setCurrentConversationId(remainingConversations[0].id);
-        } else {
-          const newId = await chatDB.createConversation();
-          setCurrentConversationId(newId);
-        }
-      }
-      await refreshConversations();
-    } catch (error) {
-      console.error('Error deleting conversation:', error);
+    await chatDB.deleteConversation(id);
+    if (currentConversationId === id) {
+      const remainingConversations = conversations.filter(conv => conv.id !== id);
+      setCurrentConversationId(remainingConversations[0]?.id);
     }
+    await refreshConversations();
   };
 
   const handleRenameConversation = async (id: number) => {
     if (!newTitle.trim()) return;
-    try {
-      await chatDB.renameConversation(id, newTitle.trim());
-      setIsRenameDialogOpen(false);
-      setNewTitle("");
-      setConversationToRename(null);
-      await refreshConversations();
-    } catch (error) {
-      console.error('Error renaming conversation:', error);
-    }
+    await chatDB.renameConversation(id, newTitle.trim());
+    setIsRenameDialogOpen(false);
+    setNewTitle("");
+    setConversationToRename(null);
+    await refreshConversations();
   };
 
   const openRenameDialog = (id: number, currentTitle: string) => {
@@ -64,8 +52,8 @@ export default function ChatPage() {
 
   useEffect(() => {
     const initDB = async () => {
-      if (isInitialized.current) return;
-      isInitialized.current = true;
+      if (isInitialized.current) return; // Prevent multiple initializations
+      isInitialized.current = true; // Set the flag to true
 
       try {
         await chatDB.init();
@@ -86,7 +74,7 @@ export default function ChatPage() {
     };
 
     initDB();
-  }, []);
+  }, []); // Empty dependency array ensures this runs once
 
   const refreshConversations = async () => {
     try {
@@ -109,7 +97,7 @@ export default function ChatPage() {
 
   // Refresh conversations periodically to catch updates
   useEffect(() => {
-    const interval = setInterval(refreshConversations, 2000); // Increased interval to reduce load
+    const interval = setInterval(refreshConversations, 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -135,60 +123,60 @@ export default function ChatPage() {
         <div className="flex-1">
           {isSidebarOpen && <h2 className="text-sm font-medium text-muted-foreground mb-2 pl-3">Recent</h2>}
           <div className="space-y-1">
-            {isSidebarOpen && conversations.map((conversation) => (
-              <div 
-                key={conversation.id} 
-                className="flex items-center group rounded-md hover:bg-[#e9eef6] data-[active=true]:bg-[#d3e3fd]" 
-                data-active={currentConversationId === conversation.id}
-              >
-                <Button
-                  variant="ghost"
-                  className="flex-1 justify-start text-sm pl-3 min-w-0 hover:bg-transparent"
-                  onClick={() => setCurrentConversationId(conversation.id)}
-                >
-                  <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
-                  <span className="truncate">{conversation.title || 'New Chat'}</span>
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:bg-transparent"
+            {isSidebarOpen ? (
+              <>
+                {conversations.map((conversation) => (
+                  <div key={conversation.id} className="flex items-center group rounded-md hover:bg-[#e9eef6] data-[active=true]:bg-[#d3e3fd]" data-active={currentConversationId === conversation.id}>
+                    <Button
+                      variant="ghost"
+                      className="flex-1 justify-start text-sm pl-3 min-w-0 hover:bg-transparent"
+                      onClick={() => setCurrentConversationId(conversation.id)}
                     >
-                      <MoreVertical className="h-4 w-4" />
+                      <MessageCircleIcon className="h-4 w-4 mr-1 flex-shrink-0 relative top-0" />
+                      <span className="truncate">{conversation.title || 'New Chat'}</span>
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => openRenameDialog(conversation.id, conversation.title)}>
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Rename
-                    </DropdownMenuItem>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          <Trash className="h-4 w-4 mr-2" />
-                          Delete
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:bg-transparent"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openRenameDialog(conversation.id, conversation.title)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Rename
                         </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this conversation? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteConversation(conversation.id)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Trash className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this conversation? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteConversation(conversation.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ))}
+              </>
+            ) : null}
           </div>
         </div>
         <Button variant="ghost" className={`${!isSidebarOpen && "px-0 justify-center"} gap-2`}>
