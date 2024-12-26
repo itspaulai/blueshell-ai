@@ -24,7 +24,7 @@ export default function ChatPage() {
   const [conversationToRename, setConversationToRename] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
 
-  const isInitialized = useRef(false); // Initialization flag
+  const isInitialized = useRef(false);
 
   const handleDeleteConversation = async (id: number) => {
     await chatDB.deleteConversation(id);
@@ -52,20 +52,16 @@ export default function ChatPage() {
 
   useEffect(() => {
     const initDB = async () => {
-      if (isInitialized.current) return; // Prevent multiple initializations
-      isInitialized.current = true; // Set the flag to true
+      if (isInitialized.current) return;
+      isInitialized.current = true;
 
       try {
         await chatDB.init();
         const existingConversations = await chatDB.getConversations();
         setConversations(existingConversations);
 
-        if (existingConversations.length === 0) {
-          const newId = await chatDB.createConversation();
-          const updatedConversations = await chatDB.getConversations();
-          setConversations(updatedConversations);
-          setCurrentConversationId(newId);
-        } else {
+        // Only set current conversation if there are existing ones
+        if (existingConversations.length > 0) {
           setCurrentConversationId(existingConversations[0].id);
         }
       } catch (error) {
@@ -74,7 +70,7 @@ export default function ChatPage() {
     };
 
     initDB();
-  }, []); // Empty dependency array ensures this runs once
+  }, []);
 
   const refreshConversations = async () => {
     try {
@@ -85,17 +81,11 @@ export default function ChatPage() {
     }
   };
 
-  const handleNewChat = async () => {
-    try {
-      const newId = await chatDB.createConversation();
-      setCurrentConversationId(newId);
-      await refreshConversations();
-    } catch (error) {
-      console.error('Error creating new conversation:', error);
-    }
+  const handleNewChat = () => {
+    // Simply clear the current conversation ID to show empty chat
+    setCurrentConversationId(undefined);
   };
 
-  // Refresh conversations periodically to catch updates
   useEffect(() => {
     const interval = setInterval(refreshConversations, 1000);
     return () => clearInterval(interval);
@@ -103,7 +93,6 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen bg-white">
-      {/* Sidebar */}
       <div className={`${
         isSidebarOpen ? "w-[320px]" : "w-[75px]"
       } bg-[#f1f4f9] p-4 flex flex-col transition-all duration-300 ease-in-out`}>
@@ -185,7 +174,6 @@ export default function ChatPage() {
         </Button>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col">
         <WebLLMProvider>
           <ChatContainer 
@@ -195,7 +183,6 @@ export default function ChatPage() {
         </WebLLMProvider>
       </div>
 
-      {/* Rename Dialog */}
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
         <DialogContent>
           <DialogHeader>
