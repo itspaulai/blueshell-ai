@@ -85,11 +85,11 @@ export default function ChatPage() {
     }
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
     try {
-      window.history.pushState(null, '', '');
-      setCurrentConversationId(undefined);
-      // setMessages([]);  // Requires messages state to be defined in ChatPage
+      const newId = await chatDB.createConversation();
+      setCurrentConversationId(newId);
+      await refreshConversations();
     } catch (error) {
       console.error('Error creating new conversation:', error);
     }
