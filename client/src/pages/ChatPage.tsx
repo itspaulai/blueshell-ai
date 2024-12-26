@@ -28,9 +28,15 @@ export default function ChatPage() {
 
   const handleDeleteConversation = async (id: number) => {
     await chatDB.deleteConversation(id);
+    const remainingConversations = conversations.filter(conv => conv.id !== id);
+    
     if (currentConversationId === id) {
-      const remainingConversations = conversations.filter(conv => conv.id !== id);
-      setCurrentConversationId(remainingConversations[0]?.id);
+      if (remainingConversations.length > 0) {
+        setCurrentConversationId(remainingConversations[0].id);
+      } else {
+        const newId = await chatDB.createConversation();
+        setCurrentConversationId(newId);
+      }
     }
     await refreshConversations();
   };
