@@ -19,7 +19,7 @@ interface ChatContainerProps {
 
 export function ChatContainer({ conversationId, onConversationCreated }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-
+  
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -40,12 +40,12 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   const handleSendMessage = async (content: string) => {
     const isFirstMessage = messages.length === 0;
     let currentId = conversationId;
-
+    
     if (!currentId) {
       currentId = await chatDB.createConversation();
       onConversationCreated?.(currentId);
     }
-
+    
     const newMessageId = Date.now();
     const userMessage: Message = {
       id: newMessageId,
@@ -53,7 +53,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       isUser: true,
       timestamp: new Date().toLocaleTimeString(),
     };
-
+    
     setMessages((prev) => [...prev, userMessage]);
 
     // If this is the first message, update the conversation title
@@ -70,7 +70,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       isUser: false,
       timestamp: new Date().toLocaleTimeString(),
     };
-
+    
     setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
@@ -80,7 +80,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       let fullMessage = "";
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
-        setMessages((prev) => prev.map(msg =>
+        setMessages((prev) => prev.map(msg => 
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
         // Reset auto-scroll when new message starts generating
@@ -88,7 +88,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         // Ensure smooth scrolling during generation
         scrollToBottom();
       }
-
+      
     } catch (error) {
       console.error('Error generating response:', error);
       const errorMessage: Message = {
@@ -106,14 +106,15 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       if (conversationId) {
         const conversation = await chatDB.getConversation(conversationId);
         if (conversation) {
-          // Only set messages if the conversation exists
-          setMessages(conversation.messages || []);
+          setMessages(conversation.messages);
         } else {
-          setMessages([]);
+          setMessages([{
+            id: Date.now(),
+            content: "Hello! How can I help you today?",
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString(),
+          }]);
         }
-      } else {
-        // Reset messages when no conversation is selected
-        setMessages([]);
       }
     };
     loadConversation();
@@ -145,7 +146,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
 
   return (
     <div className="flex flex-col h-screen">
-      <div
+      <div 
         className="flex-1 overflow-y-auto px-4"
         ref={contentRef}
       >
@@ -155,34 +156,34 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
               <span className="text-4xl font-bold text-blue-500">Hello</span>
             </div>
           )}
-          {messages.map((message) => (
-            <ChatBubble
-              key={message.id}
-              message={message.content}
-              isUser={message.isUser}
-              timestamp={message.timestamp}
-            />
-          ))}
-          {currentResponse && (
-            <ChatBubble
-              message={currentResponse}
-              isUser={false}
-              timestamp={new Date().toLocaleTimeString()}
-            />
-          )}
-          {!isModelLoaded && loadingProgress && (
-            <div className="text-sm text-muted-foreground">
-              {loadingProgress}
-            </div>
-          )}
-        </div>
+            {messages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                message={message.content}
+                isUser={message.isUser}
+                timestamp={message.timestamp}
+              />
+            ))}
+            {currentResponse && (
+              <ChatBubble
+                message={currentResponse}
+                isUser={false}
+                timestamp={new Date().toLocaleTimeString()}
+              />
+            )}
+            {!isModelLoaded && loadingProgress && (
+              <div className="text-sm text-muted-foreground">
+                {loadingProgress}
+              </div>
+            )}
+          </div>
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
-          <ChatInput
-            onSend={handleSendMessage}
+          <ChatInput 
+            onSend={handleSendMessage} 
             onStop={interruptGeneration}
-            disabled={isGenerating}
+            disabled={isGenerating} 
             isGenerating={isGenerating}
           />
         </div>
