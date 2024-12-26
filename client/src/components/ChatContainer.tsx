@@ -19,6 +19,7 @@ interface ChatContainerProps {
 
 export function ChatContainer({ conversationId, onConversationCreated }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
+  
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -37,86 +38,66 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   };
 
   const handleSendMessage = async (content: string) => {
+    const isFirstMessage = messages.length === 0;
+    let currentId = conversationId;
+    
+    if (!currentId) {
+      currentId = await chatDB.createConversation();
+      onConversationCreated?.(currentId);
+    }
+    
+    const newMessageId = Date.now();
+    const userMessage: Message = {
+      id: newMessageId,
+      content,
+      isUser: true,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    
+    setMessages((prev) => [...prev, userMessage]);
+
+    // If this is the first message, update the conversation title
+    if (isFirstMessage) {
+      // Get first 5 words or less from the message
+      const title = content.split(' ').slice(0, 5).join(' ');
+      await chatDB.updateConversation(currentId, [userMessage], title, true);
+    }
+
+    const botMessageId = newMessageId + 1;
+    const initialBotMessage: Message = {
+      id: botMessageId,
+      content: isModelLoaded ? "" : "Loading AI model...",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+    
+    setMessages((prev) => [...prev, initialBotMessage]);
+
     try {
-      let activeConversationId = conversationId;
-      const isNewChat = !activeConversationId;
-
-      // Create new conversation only when sending the first message
-      if (isNewChat) {
-        activeConversationId = await chatDB.createConversation();
-        if (!activeConversationId) {
-          throw new Error('Failed to create new conversation');
-        }
-        onConversationCreated?.(activeConversationId);
-      }
-
-      const newMessageId = Date.now();
-      const userMessage: Message = {
-        id: newMessageId,
-        content,
-        isUser: true,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-
-      // Update messages state with user message
-      setMessages(prevMessages => [...prevMessages, userMessage]);
-
-      // Update conversation in DB
-      if (isNewChat) {
-        const title = content.split(' ').slice(0, 5).join(' ');
-        await chatDB.updateConversation(activeConversationId, [userMessage], title, true);
-      } else if (activeConversationId) {
-        await chatDB.updateConversation(activeConversationId, [...messages, userMessage], undefined, true);
-      }
-
-      const botMessageId = newMessageId + 1;
-      const initialBotMessage: Message = {
-        id: botMessageId,
-        content: isModelLoaded ? "" : "Loading AI model...",
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString(),
-      };
-
-      // Add initial bot message to UI
-      setMessages(prevMessages => [...prevMessages, initialBotMessage]);
-
       const response = await sendMessage(content);
       if (!response) return;
 
       let fullMessage = "";
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
-
-        // Update messages state with new content
-        setMessages(prevMessages => 
-          prevMessages.map(msg => 
-            msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
-          )
-        );
-
+        setMessages((prev) => prev.map(msg => 
+          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
+        ));
+        // Reset auto-scroll when new message starts generating
         setShouldAutoScroll(true);
+        // Ensure smooth scrolling during generation
         scrollToBottom();
       }
-
-      // Get the final messages state and update DB
-      if (activeConversationId) {
-        const updatedMessages = [...messages, userMessage, { ...initialBotMessage, content: fullMessage }];
-        await chatDB.updateConversation(activeConversationId, updatedMessages, undefined, true);
-      }
+      
     } catch (error) {
-      console.error('Error in handleSendMessage:', error);
+      console.error('Error generating response:', error);
       const errorMessage: Message = {
-        id: Date.now(),
+        id: messages.length + 2,
         content: "I apologize, but I encountered an error. Please try again.",
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
       };
-      setMessages(prevMessages => [...prevMessages, errorMessage]);
-
-      // Update conversation with error message if we have an active conversation
-      if (conversationId) {
-        await chatDB.updateConversation(conversationId, [...messages, errorMessage], undefined, true);
-      }
+      setMessages((prev) => [...prev, errorMessage]);
     }
   };
 
@@ -127,15 +108,26 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         if (conversation) {
           setMessages(conversation.messages);
         } else {
-          setMessages([]);
+          setMessages([{
+            id: Date.now(),
+            content: "Hello! How can I help you today?",
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString(),
+          }]);
         }
-      } else {
-        // Clear messages for new chat
-        setMessages([]);
       }
     };
     loadConversation();
   }, [conversationId]);
+
+  useEffect(() => {
+    if (conversationId && messages.length > 0) {
+      // Only update timestamp when there's a new message (not when loading)
+      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
+      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
+    }
+    scrollToBottom();
+  }, [messages, currentResponse, conversationId]);
 
   useEffect(() => {
     const container = contentRef.current;
@@ -143,6 +135,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
+      // If user scrolls up more than 100px from bottom, disable auto-scroll
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setShouldAutoScroll(isNearBottom);
     };
@@ -163,27 +156,27 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
               <span className="text-4xl font-bold text-blue-500">Hello</span>
             </div>
           )}
-          {messages.map((message) => (
-            <ChatBubble
-              key={message.id}
-              message={message.content}
-              isUser={message.isUser}
-              timestamp={message.timestamp}
-            />
-          ))}
-          {currentResponse && (
-            <ChatBubble
-              message={currentResponse}
-              isUser={false}
-              timestamp={new Date().toLocaleTimeString()}
-            />
-          )}
-          {!isModelLoaded && loadingProgress && (
-            <div className="text-sm text-muted-foreground">
-              {loadingProgress}
-            </div>
-          )}
-        </div>
+            {messages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                message={message.content}
+                isUser={message.isUser}
+                timestamp={message.timestamp}
+              />
+            ))}
+            {currentResponse && (
+              <ChatBubble
+                message={currentResponse}
+                isUser={false}
+                timestamp={new Date().toLocaleTimeString()}
+              />
+            )}
+            {!isModelLoaded && loadingProgress && (
+              <div className="text-sm text-muted-foreground">
+                {loadingProgress}
+              </div>
+            )}
+          </div>
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
