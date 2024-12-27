@@ -41,11 +41,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     const isFirstMessage = !conversationId;
     let currentId = conversationId;
 
-    if (isFirstMessage) {
-      currentId = await onFirstMessage(content);
-      if (!currentId) return;
-    }
-
     const newMessageId = Date.now();
     const userMessage: Message = {
       id: newMessageId,
@@ -54,13 +49,26 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    if (isFirstMessage) {
+      currentId = await onFirstMessage(content);
+      if (!currentId) {
+        console.error('Failed to create new conversation');
+        return;
+      }
+    }
+
+    // Update messages state with user message
+    setMessages(prev => [...prev, userMessage]);
 
     if (currentId) {
-      if (isFirstMessage) {
-        await chatDB.updateConversation(currentId, [userMessage], undefined, true);
-      } else {
-        await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
+      try {
+        // For first message, we only have the user message
+        // For subsequent messages, we include all previous messages
+        const updatedMessages = isFirstMessage ? [userMessage] : [...messages, userMessage];
+        await chatDB.updateConversation(currentId, updatedMessages, undefined, true);
+      } catch (error) {
+        console.error('Error updating conversation:', error);
+        return;
       }
     }
 
@@ -72,7 +80,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, initialBotMessage]);
+    setMessages(prev => [...prev, initialBotMessage]);
 
     try {
       const response = await sendMessage(content);
@@ -93,12 +101,14 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     } catch (error) {
       console.error('Error generating response:', error);
       const errorMessage: Message = {
-        id: messages.length + 2,
+        id: botMessageId,
         content: "I apologize, but I encountered an error. Please try again.",
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => prev.map(msg => 
+        msg.id === botMessageId ? errorMessage : msg
+      ));
     }
   };
 
