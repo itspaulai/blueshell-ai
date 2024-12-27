@@ -108,22 +108,29 @@ export default function ChatPage() {
       {/* Sidebar */}
       <div className={`${
         isSidebarOpen ? "w-[320px]" : "w-[75px]"
-      } bg-[#f1f4f9] p-4 flex flex-col transition-all duration-300 ease-in-out`}>
-        <div className="flex items-center justify-between mb-4">
-          <h1 className={`text-xl font-semibold pl-3 ${!isSidebarOpen && "hidden"}`}>Blueshell</h1>
-          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-            <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${isSidebarOpen ? "rotate-90" : "-rotate-90"}`} />
+      } bg-[#f1f4f9] flex flex-col transition-all duration-300 ease-in-out`}>
+        {/* Header Section */}
+        <div className="p-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className={`text-xl font-semibold pl-3 ${!isSidebarOpen && "hidden"}`}>Blueshell</h1>
+            <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+              <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${isSidebarOpen ? "rotate-90" : "-rotate-90"}`} />
+            </Button>
+          </div>
+          <Button 
+            className={`flex gap-2 mb-4 w-full ${!isSidebarOpen && "px-0 justify-center"}`}
+            onClick={handleNewChat}
+          >
+            <PlusIcon className="h-4 w-4" />
+            {isSidebarOpen && "New chat"}
           </Button>
         </div>
-        <Button 
-          className={`flex gap-2 mb-4 ${!isSidebarOpen && "px-0 justify-center"}`}
-          onClick={handleNewChat}
-        >
-          <PlusIcon className="h-4 w-4" />
-          {isSidebarOpen && "New chat"}
-        </Button>
-        <div className="flex-1">
-          {isSidebarOpen && conversations.length > 0 && <h2 className="text-sm font-medium text-muted-foreground mb-2 pl-3">Recent</h2>}
+
+        {/* Scrollable Chat List */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4">
+          {isSidebarOpen && conversations.length > 0 && (
+            <h2 className="text-sm font-medium text-muted-foreground mb-2 pl-3">Recent</h2>
+          )}
           <div className="space-y-1">
             {isSidebarOpen && conversations.map((conversation) => (
               <div key={conversation.id} className="flex items-center group rounded-md hover:bg-[#e9eef6] data-[active=true]:bg-[#d3e3fd]" data-active={currentConversationId === conversation.id}>
@@ -177,10 +184,14 @@ export default function ChatPage() {
             ))}
           </div>
         </div>
-        <Button variant="ghost" className={`${!isSidebarOpen && "px-0 justify-center"} gap-2`}>
-          <HelpCircleIcon className="h-4 w-4" />
-          {isSidebarOpen && "Help"}
-        </Button>
+
+        {/* Fixed Footer */}
+        <div className="p-4 flex-shrink-0">
+          <Button variant="ghost" className={`${!isSidebarOpen && "px-0 justify-center"} gap-2 w-full`}>
+            <HelpCircleIcon className="h-4 w-4" />
+            {isSidebarOpen && "Help"}
+          </Button>
+        </div>
       </div>
 
       {/* Main Content */}
