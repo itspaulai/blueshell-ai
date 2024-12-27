@@ -15,7 +15,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
   const [message, setMessage] = useState("");
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { initializePDFContext, isPDFLoading } = useWebLLM();
+  const { initializePDFContext, isPDFLoading, unloadPDF } = useWebLLM();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +41,14 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
     }
   };
 
+  const handleUnloadPDF = () => {
+    unloadPDF();
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2">
       {uploadedFile && (
@@ -61,9 +69,9 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
             type="button"
             variant="ghost"
             size="icon"
-            className={`h-10 w-10 ${uploadedFile ? 'cursor-default hover:bg-transparent' : ''}`}
-            onClick={() => !uploadedFile && fileInputRef.current?.click()}
-            disabled={isPDFLoading || !!uploadedFile}
+            className={`h-10 w-10 ${uploadedFile ? 'hover:bg-blue-100 transition-colors' : ''}`}
+            onClick={() => uploadedFile ? handleUnloadPDF() : fileInputRef.current?.click()}
+            disabled={isPDFLoading}
           >
             {isPDFLoading ? (
               <Loader2 className="h-7 w-7 animate-spin" />
@@ -73,7 +81,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
               <PaperclipIcon className="h-7 w-7" />
             )}
             <span className="sr-only">
-              {uploadedFile ? "PDF file attached" : "Attach PDF file"}
+              {uploadedFile ? "Remove PDF file" : "Attach PDF file"}
             </span>
           </Button>
           <Input

@@ -140,6 +140,10 @@ export class PDFEmbeddingHandler {
   hasDocument(): boolean {
     return this.chunks.length > 0;
   }
+
+  clearDocument(): void {
+    this.chunks = [];
+  }
 }
 
 export const pdfEmbeddingHandler = new PDFEmbeddingHandler();
