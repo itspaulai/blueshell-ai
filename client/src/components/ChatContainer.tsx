@@ -14,12 +14,12 @@ interface Message {
 
 interface ChatContainerProps {
   conversationId?: number;
-  onConversationCreated?: (id: number) => void;
+  onFirstMessage: (content: string) => Promise<number | null>;
 }
 
-export function ChatContainer({ conversationId, onConversationCreated }: ChatContainerProps) {
+export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  
+
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -38,14 +38,14 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
   };
 
   const handleSendMessage = async (content: string) => {
-    const isFirstMessage = messages.length === 0;
+    const isFirstMessage = !conversationId;
     let currentId = conversationId;
-    
-    if (!currentId) {
-      currentId = await chatDB.createConversation();
-      onConversationCreated?.(currentId);
+
+    if (isFirstMessage) {
+      currentId = await onFirstMessage(content);
+      if (!currentId) return;
     }
-    
+
     const newMessageId = Date.now();
     const userMessage: Message = {
       id: newMessageId,
@@ -53,14 +53,13 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       isUser: true,
       timestamp: new Date().toLocaleTimeString(),
     };
-    
+
     setMessages((prev) => [...prev, userMessage]);
 
-    // If this is the first message, update the conversation title
     if (isFirstMessage) {
-      // Get first 5 words or less from the message
-      const title = content.split(' ').slice(0, 5).join(' ');
-      await chatDB.updateConversation(currentId, [userMessage], title, true);
+      await chatDB.updateConversation(currentId, [userMessage], undefined, true);
+    } else if (currentId) {
+      await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
     }
 
     const botMessageId = newMessageId + 1;
@@ -70,7 +69,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
       isUser: false,
       timestamp: new Date().toLocaleTimeString(),
     };
-    
+
     setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
@@ -88,7 +87,7 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         // Ensure smooth scrolling during generation
         scrollToBottom();
       }
-      
+
     } catch (error) {
       console.error('Error generating response:', error);
       const errorMessage: Message = {
@@ -107,14 +106,9 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         const conversation = await chatDB.getConversation(conversationId);
         if (conversation) {
           setMessages(conversation.messages);
-        } else {
-          setMessages([{
-            id: Date.now(),
-            content: "Hello! How can I help you today?",
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString(),
-          }]);
         }
+      } else {
+        setMessages([]);
       }
     };
     loadConversation();
@@ -122,7 +116,6 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
 
   useEffect(() => {
     if (conversationId && messages.length > 0) {
-      // Only update timestamp when there's a new message (not when loading)
       const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
       chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
     }
@@ -156,27 +149,27 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
               <span className="text-4xl font-bold text-blue-500">Hello</span>
             </div>
           )}
-            {messages.map((message) => (
-              <ChatBubble
-                key={message.id}
-                message={message.content}
-                isUser={message.isUser}
-                timestamp={message.timestamp}
-              />
-            ))}
-            {currentResponse && (
-              <ChatBubble
-                message={currentResponse}
-                isUser={false}
-                timestamp={new Date().toLocaleTimeString()}
-              />
-            )}
-            {!isModelLoaded && loadingProgress && (
-              <div className="text-sm text-muted-foreground">
-                {loadingProgress}
-              </div>
-            )}
-          </div>
+          {messages.map((message) => (
+            <ChatBubble
+              key={message.id}
+              message={message.content}
+              isUser={message.isUser}
+              timestamp={message.timestamp}
+            />
+          ))}
+          {currentResponse && (
+            <ChatBubble
+              message={currentResponse}
+              isUser={false}
+              timestamp={new Date().toLocaleTimeString()}
+            />
+          )}
+          {!isModelLoaded && loadingProgress && (
+            <div className="text-sm text-muted-foreground">
+              {loadingProgress}
+            </div>
+          )}
+        </div>
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">

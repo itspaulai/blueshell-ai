@@ -41,13 +41,6 @@ class ChatDB {
   }
 
   async createConversation(title: string = 'New Chat'): Promise<number> {
-    // Check if a conversation with the same title already exists
-    const existingConversations = await this.getConversations();
-    if (existingConversations.some(conv => conv.title === title)) {
-      const existingConv = existingConversations.find(conv => conv.title === title);
-      if (existingConv) return existingConv.id;
-    }
-
     const conversation: Conversation = {
       id: Date.now(),
       title,
