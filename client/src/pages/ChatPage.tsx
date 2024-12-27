@@ -127,7 +127,7 @@ export default function ChatPage() {
         </div>
 
         {/* Scrollable Chat List */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4">
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 scrollbar-thin scrollbar-thumb-[#dde3ea] hover:scrollbar-thumb-[#c4c7c5] scrollbar-track-transparent">
           {isSidebarOpen && conversations.length > 0 && (
             <h2 className="text-sm font-medium text-muted-foreground mb-2 pl-3">Recent</h2>
           )}
