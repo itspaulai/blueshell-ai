@@ -84,7 +84,7 @@ export default function ChatPage() {
     setCurrentConversationId(undefined);
   };
 
-  const handleFirstMessage = async (content: string) => {
+  const handleFirstMessage = async (content: string): Promise<number | undefined> => {
     try {
       const title = content.split(' ').slice(0, 5).join(' ');
       const newId = await chatDB.createConversation(title);
@@ -93,7 +93,7 @@ export default function ChatPage() {
       return newId;
     } catch (error) {
       console.error('Error creating new conversation:', error);
-      return null;
+      return undefined;
     }
   };
 

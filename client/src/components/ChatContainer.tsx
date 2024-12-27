@@ -14,7 +14,7 @@ interface Message {
 
 interface ChatContainerProps {
   conversationId?: number;
-  onFirstMessage: (content: string) => Promise<number | null>;
+  onFirstMessage: (content: string) => Promise<number | undefined>;
 }
 
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
@@ -56,10 +56,12 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
 
     setMessages((prev) => [...prev, userMessage]);
 
-    if (isFirstMessage) {
-      await chatDB.updateConversation(currentId, [userMessage], undefined, true);
-    } else if (currentId) {
-      await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
+    if (currentId) {
+      if (isFirstMessage) {
+        await chatDB.updateConversation(currentId, [userMessage], undefined, true);
+      } else {
+        await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
+      }
     }
 
     const botMessageId = newMessageId + 1;
