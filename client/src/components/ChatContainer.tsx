@@ -37,6 +37,9 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     }
   };
 
+  /**
+   * Modified handleSendMessage to prevent adding the first message again
+   */
   const handleSendMessage = async (content: string) => {
     const isFirstMessage = !conversationId;
     let currentId = conversationId;
@@ -54,11 +57,13 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    if (!isFirstMessage) {
+      setMessages((prev) => [...prev, userMessage]);
+    }
 
     if (currentId) {
       if (isFirstMessage) {
-        await chatDB.updateConversation(currentId, [userMessage], undefined, true);
+        // The first message is already added in handleFirstMessage
       } else {
         await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
       }

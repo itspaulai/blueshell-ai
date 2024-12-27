@@ -2,12 +2,40 @@ import { useState, useEffect, useRef } from "react";
 import { ChatContainer } from "@/components/ChatContainer";
 import { WebLLMProvider } from "@/lib/WebLLMContext";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, ChevronDownIcon, HelpCircleIcon, MessageCircleIcon, MoreVertical, Pencil, Trash } from "lucide-react";
+import { 
+  PlusIcon, 
+  ChevronDownIcon, 
+  HelpCircleIcon, 
+  MessageCircleIcon, 
+  MoreVertical, 
+  Pencil, 
+  Trash 
+} from "lucide-react";
 import { chatDB } from "@/lib/db";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem 
+} from "@/components/ui/dropdown-menu";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from "@/components/ui/dialog";
 
 interface Conversation {
   id: number;
@@ -84,12 +112,31 @@ export default function ChatPage() {
     setCurrentConversationId(undefined);
   };
 
+  /**
+   * Modified handleFirstMessage to create a new conversation and add the first user message
+   */
   const handleFirstMessage = async (content: string): Promise<number | undefined> => {
     try {
-      const title = content.split(' ').slice(0, 5).join(' ');
+      const title = content.split(' ').slice(0, 5).join(' ') || 'New Chat';
       const newId = await chatDB.createConversation(title);
+
+      // Create the first user message
+      const userMessage: ChatMessage = {
+        id: Date.now(),
+        content,
+        isUser: true,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+
+      // Update the conversation with the first message
+      await chatDB.updateConversation(newId, [userMessage], undefined, true);
+
+      // Set the new conversation ID
       setCurrentConversationId(newId);
+
+      // Refresh conversations to include the new one
       await refreshConversations();
+
       return newId;
     } catch (error) {
       console.error('Error creating new conversation:', error);
