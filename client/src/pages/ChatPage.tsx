@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ChatContainer } from "@/components/ChatContainer";
-import { WebLLMProvider, useWebLLM } from "@/lib/WebLLMContext";
+import { WebLLMProvider } from "@/lib/WebLLMContext";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, ChevronDownIcon, HelpCircleIcon, MessageCircleIcon, MoreVertical, Pencil, Trash } from "lucide-react";
 import { chatDB } from "@/lib/db";
@@ -16,15 +16,15 @@ interface Conversation {
   updatedAt: string;
 }
 
-function ChatPageContent() {
+export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | undefined>();
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [conversationToRename, setConversationToRename] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
+
   const isInitialized = useRef(false);
-  const { clearPDFContext } = useWebLLM();
 
   const handleDeleteConversation = async (id: number) => {
     await chatDB.deleteConversation(id);
@@ -81,7 +81,6 @@ function ChatPageContent() {
   };
 
   const handleNewChat = () => {
-    clearPDFContext();
     setCurrentConversationId(undefined);
   };
 
@@ -103,10 +102,6 @@ function ChatPageContent() {
     const interval = setInterval(refreshConversations, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    clearPDFContext();
-  }, [currentConversationId, clearPDFContext]);
 
   return (
     <div className="flex h-screen bg-white">
@@ -190,10 +185,12 @@ function ChatPageContent() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        <ChatContainer 
-          conversationId={currentConversationId}
-          onFirstMessage={handleFirstMessage}
-        />
+        <WebLLMProvider>
+          <ChatContainer 
+            conversationId={currentConversationId}
+            onFirstMessage={handleFirstMessage}
+          />
+        </WebLLMProvider>
       </div>
 
       {/* Rename Dialog */}
@@ -228,13 +225,5 @@ function ChatPageContent() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-export default function ChatPage() {
-  return (
-    <WebLLMProvider>
-      <ChatPageContent />
-    </WebLLMProvider>
   );
 }
