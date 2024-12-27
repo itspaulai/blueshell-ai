@@ -20,7 +20,6 @@ export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<number | undefined>();
-  const [isNewChat, setIsNewChat] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [conversationToRename, setConversationToRename] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
@@ -83,9 +82,6 @@ export default function ChatPage() {
 
   const handleNewChat = () => {
     setCurrentConversationId(undefined);
-    setIsNewChat(true);
-    // Reset isNewChat after a short delay to allow the effect to run
-    setTimeout(() => setIsNewChat(false), 100);
   };
 
   const handleFirstMessage = async (content: string): Promise<number | undefined> => {
@@ -193,7 +189,6 @@ export default function ChatPage() {
           <ChatContainer 
             conversationId={currentConversationId}
             onFirstMessage={handleFirstMessage}
-            isNewChat={isNewChat}
           />
         </WebLLMProvider>
       </div>

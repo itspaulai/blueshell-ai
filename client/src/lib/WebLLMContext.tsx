@@ -18,7 +18,6 @@ type WebLLMContextType = {
     initializePDFContext: (file: File) => Promise<void>;
     isPDFLoaded: boolean;
     isPDFLoading: boolean;
-    resetPDFContext: () => void;
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -91,7 +90,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             // Ensure system message is first, followed by context and user message
             const systemMessage = messageHistory.find(msg => msg.role === "system");
             const nonSystemMessages = messageHistory.filter(msg => msg.role !== "system");
-
+            
             const request: webllm.ChatCompletionRequest = {
                 stream: true,
                 stream_options: { include_usage: true },
@@ -152,12 +151,12 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Clear message history when the model is reloaded
         if (isModelLoaded) {
-            setMessageHistory([{
-                role: "system",
-                content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
-            }]);
+          setMessageHistory([{
+            role: "system",
+            content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
+          }]);
         }
-    }, [isModelLoaded]);
+      }, [isModelLoaded]);
 
     const initializePDFContext = async (file: File) => {
         try {
@@ -167,11 +166,11 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
                     setLoadingProgress(`Loading PDF embedding model: ${progress.text}`);
                 });
             }
-
+            
             const { extractTextFromPDF } = await import('./pdfUtils');
             const textChunks = await extractTextFromPDF(file);
             await pdfEmbeddingHandler.addDocument(textChunks);
-
+            
             setIsPDFLoaded(true);
             setMessageHistory(prev => [
                 ...prev,
@@ -188,16 +187,6 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const resetPDFContext = useCallback(() => {
-        setIsPDFLoaded(false);
-        setIsPDFLoading(false);
-        // Reset the message history to remove PDF-specific system message
-        setMessageHistory([{
-            role: "system",
-            content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
-        }]);
-    }, []);
-
     return (
         <WebLLMContext.Provider value={{
             isModelLoaded,
@@ -209,8 +198,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             setMessageHistory,
             initializePDFContext,
             isPDFLoaded,
-            isPDFLoading,
-            resetPDFContext
+            isPDFLoading
         }}>
             {children}
         </WebLLMContext.Provider>
