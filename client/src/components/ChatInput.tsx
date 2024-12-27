@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaperclipIcon, SendIcon, Loader2, CheckIcon } from "lucide-react";
@@ -9,13 +9,25 @@ interface ChatInputProps {
   onStop?: () => void;
   disabled?: boolean;
   isGenerating?: boolean;
+  isNewChat?: boolean;
 }
 
-export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputProps) {
+export function ChatInput({ onSend, onStop, disabled, isGenerating, isNewChat }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { initializePDFContext, isPDFLoading } = useWebLLM();
+  const { initializePDFContext, isPDFLoading, resetPDFContext } = useWebLLM();
+
+  // Reset PDF state when starting a new chat
+  useEffect(() => {
+    if (isNewChat && uploadedFile) {
+      setUploadedFile(null);
+      resetPDFContext();
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [isNewChat, resetPDFContext]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
