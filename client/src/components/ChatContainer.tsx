@@ -19,7 +19,6 @@ interface ChatContainerProps {
 
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -41,30 +40,32 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     const isFirstMessage = !conversationId;
     let currentId = conversationId;
 
-    if (isFirstMessage) {
-      currentId = await onFirstMessage(content);
-      if (!currentId) return;
-    }
-
-    const newMessageId = Date.now();
     const userMessage: Message = {
-      id: newMessageId,
+      id: Date.now(),
       content,
       isUser: true,
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    // Update local state immediately to show the message
+    setMessages(prev => [...prev, userMessage]);
 
-    if (currentId) {
-      if (isFirstMessage) {
-        await chatDB.updateConversation(currentId, [userMessage], undefined, true);
-      } else {
-        await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
+    if (isFirstMessage) {
+      currentId = await onFirstMessage(content);
+      if (!currentId) {
+        // If conversation creation failed, revert the message
+        setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+        return;
       }
     }
 
-    const botMessageId = newMessageId + 1;
+    if (currentId) {
+      // Update the conversation in IndexedDB
+      const updatedMessages = isFirstMessage ? [userMessage] : [...messages, userMessage];
+      await chatDB.updateConversation(currentId, updatedMessages, undefined, true);
+    }
+
+    const botMessageId = Date.now() + 1;
     const initialBotMessage: Message = {
       id: botMessageId,
       content: isModelLoaded ? "" : "Loading AI model...",
@@ -72,7 +73,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, initialBotMessage]);
+    setMessages(prev => [...prev, initialBotMessage]);
 
     try {
       const response = await sendMessage(content);
@@ -81,24 +82,28 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       let fullMessage = "";
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
-        setMessages((prev) => prev.map(msg => 
+        setMessages(prev => prev.map(msg => 
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
-        // Reset auto-scroll when new message starts generating
         setShouldAutoScroll(true);
-        // Ensure smooth scrolling during generation
         scrollToBottom();
       }
 
+      if (currentId) {
+        const finalMessages = messages.map(msg => 
+          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
+        );
+        await chatDB.updateConversation(currentId, finalMessages, undefined, true);
+      }
     } catch (error) {
       console.error('Error generating response:', error);
       const errorMessage: Message = {
-        id: messages.length + 2,
+        id: Date.now() + 2,
         content: "I apologize, but I encountered an error. Please try again.",
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     }
   };
 
@@ -117,20 +122,11 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   }, [conversationId]);
 
   useEffect(() => {
-    if (conversationId && messages.length > 0) {
-      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
-      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
-    }
-    scrollToBottom();
-  }, [messages, currentResponse, conversationId]);
-
-  useEffect(() => {
     const container = contentRef.current;
     if (!container) return;
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      // If user scrolls up more than 100px from bottom, disable auto-scroll
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setShouldAutoScroll(isNearBottom);
     };
