@@ -19,6 +19,7 @@ interface ChatContainerProps {
 
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
 
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -41,11 +42,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     const isFirstMessage = !conversationId;
     let currentId = conversationId;
 
-    if (isFirstMessage) {
-      currentId = await onFirstMessage(content);
-      if (!currentId) return;
-    }
-
     const newMessageId = Date.now();
     const userMessage: Message = {
       id: newMessageId,
@@ -54,12 +50,18 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    if (isFirstMessage) {
+      setPendingMessage(userMessage);
+      currentId = await onFirstMessage(content);
+      if (!currentId) return;
 
-    if (currentId) {
-      if (isFirstMessage) {
-        await chatDB.updateConversation(currentId, [userMessage], undefined, true);
-      } else {
+      // Now that we have the conversation ID, we can update the DB
+      await chatDB.updateConversation(currentId, [userMessage], undefined, true);
+      setPendingMessage(null);
+      setMessages([userMessage]);
+    } else {
+      setMessages(prev => [...prev, userMessage]);
+      if (currentId) {
         await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
       }
     }
@@ -72,7 +74,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages((prev) => [...prev, initialBotMessage]);
+    setMessages(prev => [...prev, initialBotMessage]);
 
     try {
       const response = await sendMessage(content);
@@ -81,7 +83,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       let fullMessage = "";
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
-        setMessages((prev) => prev.map(msg => 
+        setMessages(prev => prev.map(msg => 
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
         // Reset auto-scroll when new message starts generating
@@ -98,7 +100,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     }
   };
 
@@ -110,7 +112,10 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
           setMessages(conversation.messages);
         }
       } else {
-        setMessages([]);
+        // Only clear messages if there's no pending message
+        if (!pendingMessage) {
+          setMessages([]);
+        }
       }
     };
     loadConversation();
@@ -139,6 +144,8 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const displayMessages = pendingMessage ? [pendingMessage, ...messages] : messages;
+
   return (
     <div className="flex flex-col h-screen">
       <div 
@@ -146,12 +153,12 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         ref={contentRef}
       >
         <div className="max-w-3xl mx-auto py-6">
-          {messages.length === 0 && (
+          {displayMessages.length === 0 && (
             <div className="flex justify-center items-center h-[calc(100vh-200px)]">
               <span className="text-4xl font-bold text-blue-500">Hello</span>
             </div>
           )}
-          {messages.map((message) => (
+          {displayMessages.map((message) => (
             <ChatBubble
               key={message.id}
               message={message.content}
