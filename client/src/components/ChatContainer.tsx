@@ -115,14 +115,6 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
             timestamp: new Date().toLocaleTimeString(),
           }]);
         }
-      } else {
-        // Set initial message for new conversations
-        setMessages([{
-          id: Date.now(),
-          content: "Hello! I'm ready to help you. What would you like to discuss?",
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString(),
-        }]);
       }
     };
     loadConversation();
@@ -159,7 +151,11 @@ export function ChatContainer({ conversationId, onConversationCreated }: ChatCon
         ref={contentRef}
       >
         <div className="max-w-3xl mx-auto py-6">
-          
+          {messages.length === 0 && (
+            <div className="flex justify-center items-center h-[calc(100vh-200px)]">
+              <span className="text-4xl font-bold text-blue-500">Hello</span>
+            </div>
+          )}
             {messages.map((message) => (
               <ChatBubble
                 key={message.id}
