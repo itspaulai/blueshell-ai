@@ -69,7 +69,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
             type="button"
             variant="ghost"
             size="icon"
-            className={`h-10 w-10 ${uploadedFile ? 'hover:bg-blue-100 transition-colors' : ''}`}
+            className={`h-10 w-10 hover:bg-[#e9eef6] transition-colors ${uploadedFile ? 'hover:bg-blue-100' : ''}`}
             onClick={() => uploadedFile ? handleUnloadPDF() : fileInputRef.current?.click()}
             disabled={isPDFLoading}
           >
