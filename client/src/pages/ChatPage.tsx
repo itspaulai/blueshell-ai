@@ -57,7 +57,17 @@ export default function ChatPage() {
 
       try {
         await chatDB.init();
-        const existingConversations = await chatDB.getConversations();
+        let existingConversations = await chatDB.getConversations();
+        
+        // Remove empty conversations
+        for (const conv of existingConversations) {
+          if (conv.messages.length === 0) {
+            await chatDB.deleteConversation(conv.id);
+          }
+        }
+        
+        // Get updated list after cleanup
+        existingConversations = await chatDB.getConversations();
         setConversations(existingConversations);
 
         if (existingConversations.length === 0) {
