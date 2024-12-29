@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PaperclipIcon, SendIcon, Loader2, ArrowUpFromLine } from "lucide-react";
+import { PaperclipIcon, SendIcon, Loader2, FileMinus2 } from "lucide-react";
 import { useWebLLM } from "@/lib/WebLLMContext";
 
 interface ChatInputProps {
@@ -76,7 +76,7 @@ export function ChatInput({ onSend, onStop, disabled, isGenerating }: ChatInputP
             {isPDFLoading ? (
               <Loader2 className="h-7 w-7 animate-spin" />
             ) : uploadedFile ? (
-              <ArrowUpFromLine className="h-7 w-7 text-blue-700" />
+              <FileMinus2 className="h-7 w-7 text-blue-700" />
             ) : (
               <PaperclipIcon className="h-7 w-7" />
             )}
