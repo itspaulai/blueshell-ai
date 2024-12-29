@@ -133,7 +133,7 @@ export default function ChatPage() {
           )}
           <div className="space-y-1">
             {isSidebarOpen && conversations.map((conversation) => (
-              <div key={conversation.id} className="flex items-center group rounded-md hover:bg-[#e9eef6] data-[active=true]:bg-[#d3e3fd]" data-active={currentConversationId === conversation.id}>
+              <div key={conversation.id} className="flex items-center group rounded-md data-[active=true]:bg-[#d3e3fd] data-[active=false]:hover:bg-[#e9eef6]" data-active={currentConversationId === conversation.id}>
                 <Button
                   variant="ghost"
                   className="flex-1 justify-start text-sm pl-3 min-w-0 hover:bg-transparent"
