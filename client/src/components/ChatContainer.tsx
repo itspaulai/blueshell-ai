@@ -20,6 +20,7 @@ interface ChatContainerProps {
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
+  const [displayMessages, setDisplayMessages] = useState<Message[]>([]); // Added state for displayed messages
 
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -38,35 +39,22 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     }
   };
 
-  const handleSendMessage = async (content: string) => {
-    const isFirstMessage = !conversationId;
-    let currentId = conversationId;
-
-    const newMessageId = Date.now();
-    const userMessage: Message = {
-      id: newMessageId,
-      content,
+  const handleSendMessage = async (message: string) => {
+    const newMessage: Message = {
+      id: Date.now(),
+      content: message,
       isUser: true,
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: new Date().toISOString()
     };
 
-    if (isFirstMessage) {
-      setPendingMessage(userMessage);
-      currentId = await onFirstMessage(content);
-      if (!currentId) return;
-
-      // Now that we have the conversation ID, we can update the DB
-      await chatDB.updateConversation(currentId, [userMessage], undefined, true);
-      setPendingMessage(null);
-      setMessages([userMessage]);
-    } else {
-      setMessages(prev => [...prev, userMessage]);
-      if (currentId) {
-        await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
-      }
+    if (!conversationId) {
+      const newId = await onFirstMessage?.(message);
+      if (!newId) return;
     }
 
-    const botMessageId = newMessageId + 1;
+    setDisplayMessages(prev => [...prev, newMessage]);
+
+    const botMessageId = newMessage.id + 1;
     const initialBotMessage: Message = {
       id: botMessageId,
       content: isModelLoaded ? "" : "Loading AI model...",
@@ -74,16 +62,16 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages(prev => [...prev, initialBotMessage]);
+    setDisplayMessages(prev => [...prev, initialBotMessage]);
 
     try {
-      const response = await sendMessage(content);
+      const response = await sendMessage(message);
       if (!response) return;
 
       let fullMessage = "";
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
-        setMessages(prev => prev.map(msg => 
+        setDisplayMessages(prev => prev.map(msg =>
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
         // Reset auto-scroll when new message starts generating
@@ -92,15 +80,20 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         scrollToBottom();
       }
 
+      // Update DB after receiving full response
+      if (conversationId) {
+        await chatDB.updateConversation(conversationId, displayMessages, undefined, true);
+      }
+
     } catch (error) {
       console.error('Error generating response:', error);
       const errorMessage: Message = {
-        id: messages.length + 2,
+        id: displayMessages.length + 2,
         content: "I apologize, but I encountered an error. Please try again.",
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setDisplayMessages(prev => [...prev, errorMessage]);
     }
   };
 
@@ -109,12 +102,12 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       if (conversationId) {
         const conversation = await chatDB.getConversation(conversationId);
         if (conversation) {
-          setMessages(conversation.messages);
+          setDisplayMessages(conversation.messages);
         }
       } else {
         // Only clear messages if there's no pending message
         if (!pendingMessage) {
-          setMessages([]);
+          setDisplayMessages([]);
         }
       }
     };
@@ -122,12 +115,12 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   }, [conversationId]);
 
   useEffect(() => {
-    if (conversationId && messages.length > 0) {
-      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
-      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
+    if (conversationId && displayMessages.length > 0) {
+      const updateTimestamp = displayMessages[displayMessages.length - 1].timestamp === new Date().toLocaleTimeString();
+      chatDB.updateConversation(conversationId, displayMessages, undefined, updateTimestamp);
     }
     scrollToBottom();
-  }, [messages, currentResponse, conversationId]);
+  }, [displayMessages, currentResponse, conversationId]);
 
   useEffect(() => {
     const container = contentRef.current;
@@ -144,11 +137,10 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const displayMessages = pendingMessage ? [pendingMessage, ...messages] : messages;
 
   return (
     <div className="flex flex-col h-screen">
-      <div 
+      <div
         className="flex-1 overflow-y-auto px-4"
         ref={contentRef}
       >
@@ -182,10 +174,10 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       </div>
       <div className="bg-white p-6">
         <div className="max-w-3xl mx-auto">
-          <ChatInput 
-            onSend={handleSendMessage} 
+          <ChatInput
+            onSend={handleSendMessage}
             onStop={interruptGeneration}
-            disabled={isGenerating} 
+            disabled={isGenerating}
             isGenerating={isGenerating}
           />
         </div>
