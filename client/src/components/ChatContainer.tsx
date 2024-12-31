@@ -21,7 +21,15 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
 
-  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
+  const { 
+    sendMessage, 
+    isModelLoaded, 
+    loadingProgress, 
+    isGenerating, 
+    interruptGeneration,
+    loadConversationContext 
+  } = useWebLLM();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [currentResponse, setCurrentResponse] = useState("");
@@ -77,7 +85,8 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     setMessages(prev => [...prev, initialBotMessage]);
 
     try {
-      const response = await sendMessage(content);
+      // Send message with conversation context
+      const response = await sendMessage(content, currentId);
       if (!response) return;
 
       let fullMessage = "";
@@ -90,6 +99,14 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         setShouldAutoScroll(true);
         // Ensure smooth scrolling during generation
         scrollToBottom();
+      }
+
+      // Update the conversation in IndexedDB with the full response
+      if (currentId) {
+        const updatedMessages = messages.map(msg => 
+          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
+        );
+        await chatDB.updateConversation(currentId, updatedMessages, undefined, true);
       }
 
     } catch (error) {
@@ -110,6 +127,8 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         const conversation = await chatDB.getConversation(conversationId);
         if (conversation) {
           setMessages(conversation.messages);
+          // Load the conversation context into WebLLM
+          await loadConversationContext(conversationId);
         }
       } else {
         // Only clear messages if there's no pending message
@@ -119,7 +138,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       }
     };
     loadConversation();
-  }, [conversationId]);
+  }, [conversationId, loadConversationContext]);
 
   useEffect(() => {
     if (conversationId && messages.length > 0) {

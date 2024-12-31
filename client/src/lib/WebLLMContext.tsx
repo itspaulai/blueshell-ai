@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef, ReactNode, useEffect } from 'react';
 import * as webllm from "@mlc-ai/web-llm";
 import { pdfEmbeddingHandler } from './pdfUtils';
+import { chatDB } from './db';
 
 interface Message {
     role: "system" | "user" | "assistant";
@@ -10,7 +11,7 @@ interface Message {
 type WebLLMContextType = {
     isModelLoaded: boolean;
     loadingProgress: string;
-    sendMessage: (message: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
+    sendMessage: (message: string, conversationId?: number) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
     isGenerating: boolean;
     interruptGeneration: () => void;
     messageHistory: Message[];
@@ -18,7 +19,8 @@ type WebLLMContextType = {
     initializePDFContext: (file: File) => Promise<void>;
     isPDFLoaded: boolean;
     isPDFLoading: boolean;
-    unloadPDF: () => void;  // Add this line
+    unloadPDF: () => void;
+    loadConversationContext: (conversationId: number) => Promise<void>;
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -61,7 +63,29 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const sendMessage = useCallback(async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
+    const loadConversationContext = async (conversationId: number) => {
+        try {
+            const conversation = await chatDB.getConversation(conversationId);
+            if (conversation) {
+                // Convert DB messages to WebLLM message format
+                const convertedMessages = conversation.messages.map(msg => ({
+                    role: msg.isUser ? "user" : "assistant" as "system" | "user" | "assistant",
+                    content: msg.content
+                }));
+
+                // Ensure system message is first
+                const systemMessage = messageHistory.find(msg => msg.role === "system");
+                const messages = systemMessage ? [systemMessage, ...convertedMessages] : convertedMessages;
+
+                setMessageHistory(messages);
+                console.log('Loaded conversation context:', messages);
+            }
+        } catch (error) {
+            console.error('Error loading conversation context:', error);
+        }
+    };
+
+    const sendMessage = useCallback(async (message: string, conversationId?: number): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
         if (!engineRef.current && !isModelLoaded) {
             await initializeEngine();
         }
@@ -84,11 +108,10 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
 
         // Add user message to history before making the request
         const userMessage: Message = { role: "user", content: message };
-        setMessageHistory(prevHistory => [...prevHistory, userMessage]); // Update to use functional update
+        setMessageHistory(prevHistory => [...prevHistory, userMessage]);
 
         try {
-            // Include message history in the request
-            // Ensure system message is first, followed by context and user message
+            // Ensure the message history is properly ordered with system message first
             const systemMessage = messageHistory.find(msg => msg.role === "system");
             const nonSystemMessages = messageHistory.filter(msg => msg.role !== "system");
 
@@ -126,10 +149,11 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
                 } finally {
                     // Add assistant's complete message to history
                     if (assistantMessage) {
-                        setMessageHistory(prev => [...prev, {
+                        const newMessage: Message = {
                             role: "assistant",
                             content: assistantMessage
-                        }]);
+                        };
+                        setMessageHistory(prev => [...prev, newMessage]);
                     }
                     setIsGenerating(false);
                 }
@@ -140,7 +164,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             setIsGenerating(false);
             throw error;
         }
-    }, [isModelLoaded, initializeEngine, messageHistory]); // Add messageHistory to the dependency array
+    }, [isModelLoaded, initializeEngine, messageHistory, isPDFLoaded]);
 
     const interruptGeneration = useCallback(() => {
         if (engineRef.current && isGenerating) {
@@ -150,7 +174,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     }, [isGenerating]);
 
     useEffect(() => {
-        // Clear message history when the model is reloaded
+        // Only reset message history when model is reloaded
         if (isModelLoaded) {
             setMessageHistory([{
                 role: "system",
@@ -210,7 +234,8 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             initializePDFContext,
             isPDFLoaded,
             isPDFLoading,
-            unloadPDF  // Add this line
+            unloadPDF,
+            loadConversationContext
         }}>
             {children}
         </WebLLMContext.Provider>
