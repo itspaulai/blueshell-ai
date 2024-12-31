@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useCallback, useRef, ReactNode, useEffect } from 'react';
 import * as webllm from "@mlc-ai/web-llm";
 import { pdfEmbeddingHandler } from './pdfUtils';
-import { chatDB } from './db';
 
 interface Message {
     role: "system" | "user" | "assistant";
@@ -11,7 +10,7 @@ interface Message {
 type WebLLMContextType = {
     isModelLoaded: boolean;
     loadingProgress: string;
-    sendMessage: (message: string, conversationId?: number) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
+    sendMessage: (message: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
     isGenerating: boolean;
     interruptGeneration: () => void;
     messageHistory: Message[];
@@ -19,8 +18,7 @@ type WebLLMContextType = {
     initializePDFContext: (file: File) => Promise<void>;
     isPDFLoaded: boolean;
     isPDFLoading: boolean;
-    unloadPDF: () => void;
-    initializeContext: (conversationId: number) => Promise<void>;
+    unloadPDF: () => void;  // Add this line
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -63,31 +61,6 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // New function to initialize context from a conversation
-    const initializeContext = async (conversationId: number) => {
-        try {
-            const conversation = await chatDB.getConversation(conversationId);
-            if (conversation) {
-                // Convert IndexedDB messages to WebLLM message format
-                const webLLMMessages: Message[] = conversation.messages.map(msg => ({
-                    role: msg.isUser ? "user" : "assistant",
-                    content: msg.content
-                }));
-
-                // Always include the system message at the start
-                setMessageHistory([
-                    {
-                        role: "system",
-                        content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses."
-                    },
-                    ...webLLMMessages
-                ]);
-            }
-        } catch (error) {
-            console.error('Error initializing context:', error);
-        }
-    };
-
     const sendMessage = useCallback(async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
         if (!engineRef.current && !isModelLoaded) {
             await initializeEngine();
@@ -97,6 +70,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             throw new Error("Engine not initialized");
         }
 
+        // Create a new AbortController for this request
         abortControllerRef.current = new AbortController();
         setIsGenerating(true);
 
@@ -108,10 +82,13 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             }
         }
 
+        // Add user message to history before making the request
         const userMessage: Message = { role: "user", content: message };
-        setMessageHistory(prevHistory => [...prevHistory, userMessage]);
+        setMessageHistory(prevHistory => [...prevHistory, userMessage]); // Update to use functional update
 
         try {
+            // Include message history in the request
+            // Ensure system message is first, followed by context and user message
             const systemMessage = messageHistory.find(msg => msg.role === "system");
             const nonSystemMessages = messageHistory.filter(msg => msg.role !== "system");
 
@@ -119,11 +96,14 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
                 stream: true,
                 stream_options: { include_usage: true },
                 messages: [
+                    // System message must be first
                     systemMessage || {
                         role: "system",
                         content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses."
                     },
+                    // Include previous conversation context
                     ...nonSystemMessages,
+                    // Add the current message with context if available
                     {
                         role: "user",
                         content: contextPrompt || message
@@ -135,6 +115,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
 
             const response = await engineRef.current.chat.completions.create(request);
 
+            // Create a wrapper generator that handles the isGenerating state and message history
             const wrappedResponse = async function* () {
                 let assistantMessage = "";
                 try {
@@ -143,6 +124,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
                         yield chunk;
                     }
                 } finally {
+                    // Add assistant's complete message to history
                     if (assistantMessage) {
                         setMessageHistory(prev => [...prev, {
                             role: "assistant",
@@ -158,7 +140,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             setIsGenerating(false);
             throw error;
         }
-    }, [isModelLoaded, initializeEngine, messageHistory, isPDFLoaded]);
+    }, [isModelLoaded, initializeEngine, messageHistory]); // Add messageHistory to the dependency array
 
     const interruptGeneration = useCallback(() => {
         if (engineRef.current && isGenerating) {
@@ -168,6 +150,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     }, [isGenerating]);
 
     useEffect(() => {
+        // Clear message history when the model is reloaded
         if (isModelLoaded) {
             setMessageHistory([{
                 role: "system",
@@ -207,8 +190,9 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
 
     const unloadPDF = useCallback(() => {
         setIsPDFLoaded(false);
-        setMessageHistory(prev => [prev[0]]);
+        setMessageHistory(prev => [prev[0]]); // Keep only the initial system message
 
+        // Reset the embedding handler's internal state
         if (pdfEmbeddingHandler.hasDocument()) {
             pdfEmbeddingHandler.clearDocument();
         }
@@ -226,8 +210,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             initializePDFContext,
             isPDFLoaded,
             isPDFLoading,
-            unloadPDF,
-            initializeContext
+            unloadPDF  // Add this line
         }}>
             {children}
         </WebLLMContext.Provider>
