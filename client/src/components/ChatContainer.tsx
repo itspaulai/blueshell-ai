@@ -21,7 +21,15 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
 
-  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
+  const { 
+    sendMessage, 
+    isModelLoaded, 
+    loadingProgress, 
+    isGenerating, 
+    interruptGeneration,
+    messageHistory 
+  } = useWebLLM();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [currentResponse, setCurrentResponse] = useState("");
@@ -55,7 +63,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       currentId = await onFirstMessage(content);
       if (!currentId) return;
 
-      // Now that we have the conversation ID, we can update the DB
       await chatDB.updateConversation(currentId, [userMessage], undefined, true);
       setPendingMessage(null);
       setMessages([userMessage]);
@@ -77,7 +84,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     setMessages(prev => [...prev, initialBotMessage]);
 
     try {
-      const response = await sendMessage(content);
+      const response = await sendMessage(content, currentId);
       if (!response) return;
 
       let fullMessage = "";
@@ -86,10 +93,15 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         setMessages(prev => prev.map(msg => 
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
-        // Reset auto-scroll when new message starts generating
         setShouldAutoScroll(true);
-        // Ensure smooth scrolling during generation
         scrollToBottom();
+      }
+
+      if (currentId) {
+        const updatedMessages = messages.map(msg => 
+          msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
+        );
+        await chatDB.updateConversation(currentId, updatedMessages, undefined, true);
       }
 
     } catch (error) {
@@ -101,6 +113,9 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         timestamp: new Date().toLocaleTimeString(),
       };
       setMessages(prev => [...prev, errorMessage]);
+      if (currentId) {
+        await chatDB.updateConversation(currentId, [...messages, errorMessage], undefined, true);
+      }
     }
   };
 
@@ -112,7 +127,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
           setMessages(conversation.messages);
         }
       } else {
-        // Only clear messages if there's no pending message
         if (!pendingMessage) {
           setMessages([]);
         }
@@ -135,7 +149,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      // If user scrolls up more than 100px from bottom, disable auto-scroll
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setShouldAutoScroll(isNearBottom);
     };

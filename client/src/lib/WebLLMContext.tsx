@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef, ReactNode, useEffect } from 'react';
 import * as webllm from "@mlc-ai/web-llm";
 import { pdfEmbeddingHandler } from './pdfUtils';
+import { chatDB } from './db';
 
 interface Message {
     role: "system" | "user" | "assistant";
@@ -10,7 +11,7 @@ interface Message {
 type WebLLMContextType = {
     isModelLoaded: boolean;
     loadingProgress: string;
-    sendMessage: (message: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
+    sendMessage: (message: string, conversationId?: number) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
     isGenerating: boolean;
     interruptGeneration: () => void;
     messageHistory: Message[];
@@ -18,7 +19,7 @@ type WebLLMContextType = {
     initializePDFContext: (file: File) => Promise<void>;
     isPDFLoaded: boolean;
     isPDFLoading: boolean;
-    unloadPDF: () => void;  // Add this line
+    unloadPDF: () => void;
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -44,6 +45,33 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     const engineRef = useRef<webllm.MLCEngineInterface | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
 
+    // Load message history from IndexedDB when a conversation is loaded
+    const loadMessageHistory = async (conversationId: number) => {
+        try {
+            const conversation = await chatDB.getConversation(conversationId);
+            if (conversation) {
+                // Convert IndexedDB message format to WebLLM format
+                const convertedMessages: Message[] = conversation.messages.map(msg => ({
+                    role: msg.isUser ? "user" : "assistant",
+                    content: msg.content
+                }));
+
+                // Ensure system message is always first
+                const systemMessage = messageHistory.find(msg => msg.role === "system");
+                if (systemMessage) {
+                    setMessageHistory([systemMessage, ...convertedMessages]);
+                } else {
+                    setMessageHistory([{
+                        role: "system",
+                        content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
+                    }, ...convertedMessages]);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading message history:', error);
+        }
+    };
+
     const initializeEngine = useCallback(async () => {
         const initProgressCallback = (report: webllm.InitProgressReport) => {
             setLoadingProgress(report.text);
@@ -61,13 +89,18 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const sendMessage = useCallback(async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
+    const sendMessage = useCallback(async (message: string, conversationId?: number): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
         if (!engineRef.current && !isModelLoaded) {
             await initializeEngine();
         }
 
         if (!engineRef.current) {
             throw new Error("Engine not initialized");
+        }
+
+        // If conversationId is provided, load the message history first
+        if (conversationId) {
+            await loadMessageHistory(conversationId);
         }
 
         // Create a new AbortController for this request
@@ -84,30 +117,16 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
 
         // Add user message to history before making the request
         const userMessage: Message = { role: "user", content: message };
-        setMessageHistory(prevHistory => [...prevHistory, userMessage]); // Update to use functional update
+        setMessageHistory(prevHistory => [...prevHistory, userMessage]);
 
         try {
             // Include message history in the request
-            // Ensure system message is first, followed by context and user message
-            const systemMessage = messageHistory.find(msg => msg.role === "system");
-            const nonSystemMessages = messageHistory.filter(msg => msg.role !== "system");
-
             const request: webllm.ChatCompletionRequest = {
                 stream: true,
                 stream_options: { include_usage: true },
                 messages: [
-                    // System message must be first
-                    systemMessage || {
-                        role: "system",
-                        content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses."
-                    },
-                    // Include previous conversation context
-                    ...nonSystemMessages,
-                    // Add the current message with context if available
-                    {
-                        role: "user",
-                        content: contextPrompt || message
-                    }
+                    ...messageHistory, // Include all previous messages for context
+                    { role: "user", content: contextPrompt || message }
                 ],
                 temperature: 0.8,
                 max_tokens: 800,
@@ -140,7 +159,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             setIsGenerating(false);
             throw error;
         }
-    }, [isModelLoaded, initializeEngine, messageHistory]); // Add messageHistory to the dependency array
+    }, [isModelLoaded, initializeEngine, messageHistory, isPDFLoaded]);
 
     const interruptGeneration = useCallback(() => {
         if (engineRef.current && isGenerating) {
@@ -149,13 +168,19 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         }
     }, [isGenerating]);
 
+    // Keep the system message when model is reloaded
     useEffect(() => {
-        // Clear message history when the model is reloaded
         if (isModelLoaded) {
-            setMessageHistory([{
-                role: "system",
-                content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
-            }]);
+            setMessageHistory(prev => {
+                const systemMessage = prev.find(msg => msg.role === "system");
+                if (systemMessage) {
+                    return [systemMessage];
+                }
+                return [{
+                    role: "system",
+                    content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
+                }];
+            });
         }
     }, [isModelLoaded]);
 
@@ -192,7 +217,6 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         setIsPDFLoaded(false);
         setMessageHistory(prev => [prev[0]]); // Keep only the initial system message
 
-        // Reset the embedding handler's internal state
         if (pdfEmbeddingHandler.hasDocument()) {
             pdfEmbeddingHandler.clearDocument();
         }
@@ -210,7 +234,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             initializePDFContext,
             isPDFLoaded,
             isPDFLoading,
-            unloadPDF  // Add this line
+            unloadPDF
         }}>
             {children}
         </WebLLMContext.Provider>
