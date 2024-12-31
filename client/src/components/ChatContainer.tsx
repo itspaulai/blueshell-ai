@@ -20,7 +20,6 @@ interface ChatContainerProps {
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
-
   const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -60,9 +59,11 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       setPendingMessage(null);
       setMessages([userMessage]);
     } else {
-      setMessages(prev => [...prev, userMessage]);
+      const updatedMessages = [...messages, userMessage];
+      setMessages(updatedMessages);
       if (currentId) {
-        await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
+        // Save message immediately after sending
+        await chatDB.updateConversation(currentId, updatedMessages, undefined, true);
       }
     }
 
@@ -74,7 +75,8 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       timestamp: new Date().toLocaleTimeString(),
     };
 
-    setMessages(prev => [...prev, initialBotMessage]);
+    const updatedMessagesWithBot = [...(isFirstMessage ? [userMessage] : messages), userMessage, initialBotMessage];
+    setMessages(updatedMessagesWithBot);
 
     try {
       const response = await sendMessage(content);
@@ -83,36 +85,50 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       let fullMessage = "";
       for await (const chunk of response) {
         fullMessage += chunk.choices[0]?.delta?.content || "";
-        setMessages(prev => prev.map(msg => 
+        const updatedMessages = updatedMessagesWithBot.map(msg => 
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
-        ));
-        // Reset auto-scroll when new message starts generating
+        );
+        setMessages(updatedMessages);
+
+        // Save to DB after each significant chunk
+        if (currentId && chunk.choices[0]?.delta?.content) {
+          await chatDB.updateConversation(currentId, updatedMessages, undefined, true);
+        }
+
         setShouldAutoScroll(true);
-        // Ensure smooth scrolling during generation
         scrollToBottom();
       }
 
     } catch (error) {
       console.error('Error generating response:', error);
       const errorMessage: Message = {
-        id: messages.length + 2,
+        id: botMessageId,
         content: "I apologize, but I encountered an error. Please try again.",
         isUser: false,
         timestamp: new Date().toLocaleTimeString(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      const messagesWithError = [...(isFirstMessage ? [userMessage] : messages), userMessage, errorMessage];
+      setMessages(messagesWithError);
+      if (currentId) {
+        await chatDB.updateConversation(currentId, messagesWithError, undefined, true);
+      }
     }
   };
 
+  // Load conversation messages on mount or when conversationId changes
   useEffect(() => {
     const loadConversation = async () => {
       if (conversationId) {
-        const conversation = await chatDB.getConversation(conversationId);
-        if (conversation) {
-          setMessages(conversation.messages);
+        try {
+          const conversation = await chatDB.getConversation(conversationId);
+          if (conversation) {
+            setMessages(conversation.messages);
+            scrollToBottom();
+          }
+        } catch (error) {
+          console.error('Error loading conversation:', error);
         }
       } else {
-        // Only clear messages if there's no pending message
         if (!pendingMessage) {
           setMessages([]);
         }
@@ -121,13 +137,20 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     loadConversation();
   }, [conversationId]);
 
+  // Save messages to DB whenever they change
   useEffect(() => {
-    if (conversationId && messages.length > 0) {
-      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
-      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
-    }
-    scrollToBottom();
-  }, [messages, currentResponse, conversationId]);
+    const saveMessages = async () => {
+      if (conversationId && messages.length > 0) {
+        try {
+          await chatDB.updateConversation(conversationId, messages, undefined, true);
+        } catch (error) {
+          console.error('Error saving conversation:', error);
+        }
+      }
+      scrollToBottom();
+    };
+    saveMessages();
+  }, [messages, conversationId]);
 
   useEffect(() => {
     const container = contentRef.current;
@@ -135,7 +158,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      // If user scrolls up more than 100px from bottom, disable auto-scroll
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setShouldAutoScroll(isNearBottom);
     };
@@ -166,13 +188,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
               timestamp={message.timestamp}
             />
           ))}
-          {currentResponse && (
-            <ChatBubble
-              message={currentResponse}
-              isUser={false}
-              timestamp={new Date().toLocaleTimeString()}
-            />
-          )}
           {!isModelLoaded && loadingProgress && (
             <div className="text-sm text-muted-foreground">
               {loadingProgress}
