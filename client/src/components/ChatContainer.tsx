@@ -21,7 +21,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
 
-  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration } = useWebLLM();
+  const { sendMessage, isModelLoaded, loadingProgress, isGenerating, interruptGeneration, initializeContext } = useWebLLM();
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [currentResponse, setCurrentResponse] = useState("");
@@ -55,7 +55,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       currentId = await onFirstMessage(content);
       if (!currentId) return;
 
-      // Now that we have the conversation ID, we can update the DB
       await chatDB.updateConversation(currentId, [userMessage], undefined, true);
       setPendingMessage(null);
       setMessages([userMessage]);
@@ -86,9 +85,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         setMessages(prev => prev.map(msg => 
           msg.id === botMessageId ? { ...msg, content: fullMessage } : msg
         ));
-        // Reset auto-scroll when new message starts generating
         setShouldAutoScroll(true);
-        // Ensure smooth scrolling during generation
         scrollToBottom();
       }
 
@@ -107,19 +104,21 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   useEffect(() => {
     const loadConversation = async () => {
       if (conversationId) {
+        // Initialize WebLLM context with conversation history
+        await initializeContext(conversationId);
+
         const conversation = await chatDB.getConversation(conversationId);
         if (conversation) {
           setMessages(conversation.messages);
         }
       } else {
-        // Only clear messages if there's no pending message
         if (!pendingMessage) {
           setMessages([]);
         }
       }
     };
     loadConversation();
-  }, [conversationId]);
+  }, [conversationId, initializeContext]);
 
   useEffect(() => {
     if (conversationId && messages.length > 0) {
@@ -135,7 +134,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
-      // If user scrolls up more than 100px from bottom, disable auto-scroll
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       setShouldAutoScroll(isNearBottom);
     };
