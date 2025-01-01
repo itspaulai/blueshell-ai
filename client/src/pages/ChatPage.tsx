@@ -28,6 +28,8 @@ export default function ChatPage() {
 
   const handleDeleteConversation = async (id: number) => {
     await chatDB.deleteConversation(id);
+
+    // If we just deleted the currently active conversation, switch to another one if available
     if (currentConversationId === id) {
       const remainingConversations = conversations.filter(conv => conv.id !== id);
       setCurrentConversationId(remainingConversations[0]?.id);
@@ -50,6 +52,9 @@ export default function ChatPage() {
     setIsRenameDialogOpen(true);
   };
 
+  // ---------------
+  // 1) Initialize DB & conversations
+  // ---------------
   useEffect(() => {
     const initDB = async () => {
       if (isInitialized.current) return;
@@ -60,8 +65,27 @@ export default function ChatPage() {
         const existingConversations = await chatDB.getConversations();
         setConversations(existingConversations);
 
-        if (existingConversations.length > 0) {
-          setCurrentConversationId(existingConversations[0].id);
+        // Check localStorage for the last active conversation ID
+        const storedId = localStorage.getItem("currentConversationId");
+        if (storedId) {
+          const parsedId = parseInt(storedId, 10);
+          // Only set it if that conversation actually exists in the DB
+          const conversationExists = existingConversations.some(conv => conv.id === parsedId);
+          if (conversationExists) {
+            setCurrentConversationId(parsedId);
+          } else if (existingConversations.length > 0) {
+            // fallback to first if the stored ID isn't valid
+            setCurrentConversationId(existingConversations[0].id);
+          } else {
+            setCurrentConversationId(undefined);
+          }
+        } else {
+          // Otherwise, just pick the first conversation if any exist
+          if (existingConversations.length > 0) {
+            setCurrentConversationId(existingConversations[0].id);
+          } else {
+            setCurrentConversationId(undefined);
+          }
         }
       } catch (error) {
         console.error('Error initializing DB:', error);
@@ -70,6 +94,17 @@ export default function ChatPage() {
 
     initDB();
   }, []);
+
+  // ---------------
+  // 2) Store currentConversationId in localStorage whenever it changes
+  // ---------------
+  useEffect(() => {
+    if (currentConversationId !== undefined) {
+      localStorage.setItem("currentConversationId", currentConversationId.toString());
+    } else {
+      localStorage.removeItem("currentConversationId");
+    }
+  }, [currentConversationId]);
 
   const refreshConversations = async () => {
     try {
@@ -81,6 +116,7 @@ export default function ChatPage() {
   };
 
   const handleNewChat = () => {
+    // Clear the currentConversationId so ChatContainer treats it as a brand new chat
     setCurrentConversationId(undefined);
   };
 
@@ -97,7 +133,7 @@ export default function ChatPage() {
     }
   };
 
-  // Refresh conversations periodically to catch updates
+  // Refresh conversations periodically to catch updates from other actions
   useEffect(() => {
     const interval = setInterval(refreshConversations, 1000);
     return () => clearInterval(interval);
@@ -114,7 +150,11 @@ export default function ChatPage() {
           <div className="flex items-center justify-between mb-4">
             <h1 className={`text-xl font-semibold pl-3 ${!isSidebarOpen && "hidden"}`}>Blueshell</h1>
             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-              <ChevronDownIcon className={`h-4 w-4 transition-transform duration-300 ${isSidebarOpen ? "rotate-90" : "-rotate-90"}`} />
+              <ChevronDownIcon
+                className={`h-4 w-4 transition-transform duration-300 ${
+                  isSidebarOpen ? "rotate-90" : "-rotate-90"
+                }`}
+              />
             </Button>
           </div>
           <Button 
@@ -133,7 +173,11 @@ export default function ChatPage() {
           )}
           <div className="space-y-1">
             {isSidebarOpen && conversations.map((conversation) => (
-              <div key={conversation.id} className="flex items-center group rounded-md data-[active=true]:bg-[#d3e3fd] data-[active=false]:hover:bg-[#e9eef6]" data-active={currentConversationId === conversation.id}>
+              <div
+                key={conversation.id}
+                className="flex items-center group rounded-md data-[active=true]:bg-[#d3e3fd] data-[active=false]:hover:bg-[#e9eef6]"
+                data-active={currentConversationId === conversation.id}
+              >
                 <Button
                   variant="ghost"
                   className="flex-1 justify-start text-sm pl-3 min-w-0 hover:bg-transparent"
@@ -226,7 +270,7 @@ export default function ChatPage() {
             <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={() => conversationToRename && handleRenameConversation(conversationToRename)}
               disabled={!newTitle.trim()}
             >
