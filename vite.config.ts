@@ -17,9 +17,9 @@ export default defineConfig({
     runtimeErrorOverlay(),
     themePlugin(),
   ],
-  base: "./",
+  root: "client",
   build: {
-    outDir: "dist",
+    outDir: "../dist",
     emptyOutDir: true
   }
 });
