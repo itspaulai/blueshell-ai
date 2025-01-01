@@ -1,15 +1,13 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
+import path, { dirname } from "path";
 import checker from "vite-plugin-checker";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal"
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 export default defineConfig({
   plugins: [
     react(),
@@ -17,9 +15,15 @@ export default defineConfig({
     runtimeErrorOverlay(),
     themePlugin(),
   ],
-  root: "client",
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "client", "src"),
+      "@db": path.resolve(__dirname, "db"),
+    },
+  },
+  root: path.resolve(__dirname, "client"),
   build: {
-    outDir: "../dist",
-    emptyOutDir: true
-  }
+    outDir: path.resolve(__dirname, "dist/public"),
+    emptyOutDir: true,
+  },
 });
