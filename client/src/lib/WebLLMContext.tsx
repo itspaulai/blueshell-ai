@@ -100,7 +100,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
           messages: [
             systemMessage || {
               role: "system",
-              content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
+              content: "You are a helpful, respectful and honest assistant.",
             },
             ...nonSystemMessages,
             { role: "user", content: contextPrompt || message },
