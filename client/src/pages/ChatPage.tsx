@@ -16,6 +16,30 @@ interface Conversation {
   updatedAt: string;
 }
 
+function HelpDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Help</DialogTitle>
+        </DialogHeader>
+        <div className="p-4 space-y-4">
+          {/* Add your help content here */}
+          <p>Welcome to the Blueshell App!</p>
+          <p>This app allows you to create and manage conversations.</p>
+          <p>To create a new conversation, click the "+" button in the sidebar.</p>
+          <p>To rename a conversation, click the "..." menu next to the conversation title.</p>
+          <p>To delete a conversation, click the "..." menu next to the conversation title and select "Delete".</p>
+        </div>
+        <DialogFooter>
+          <Button onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -23,6 +47,7 @@ export default function ChatPage() {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [conversationToRename, setConversationToRename] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const isInitialized = useRef(false);
 
@@ -231,11 +256,12 @@ export default function ChatPage() {
 
         {/* Fixed Footer */}
         <div className="p-4 flex-shrink-0">
-          <Button variant="ghost" className={`${!isSidebarOpen && "px-0 justify-center"} gap-2 w-full`}>
+          <Button variant="ghost" className={`${!isSidebarOpen && "px-0 justify-center"} gap-2 w-full`} onClick={() => setHelpOpen(true)}>
             <HelpCircleIcon className="h-4 w-4" />
             {isSidebarOpen && "Help"}
           </Button>
         </div>
+        <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
       </div>
 
       {/* Main Content */}
