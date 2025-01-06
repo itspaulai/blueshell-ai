@@ -149,7 +149,7 @@ export default function ChatPage() {
         isSidebarOpen ? "w-[320px]" : "w-[75px]"
       } bg-[#f1f4f9] flex flex-col transition-all duration-300 ease-in-out`}>
         {/* Header Section */}
-        <div className="px-4 pt-5 pb-2 flex-shrink-0">
+        <div className="px-5 pt-5 pb-2 flex-shrink-0">
           <div className="flex items-center justify-between mb-5">
             <h1 className={`text-xl font-semibold ${!isSidebarOpen && "hidden"}`}>Blueshell</h1>
             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
@@ -170,7 +170,7 @@ export default function ChatPage() {
         </div>
 
         {/* Scrollable Chat List */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 scrollbar-thin scrollbar-thumb-[#dde3ea] hover:scrollbar-thumb-[#c4c7c5] scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto min-h-0 px-5 scrollbar-thin scrollbar-thumb-[#dde3ea] hover:scrollbar-thumb-[#c4c7c5] scrollbar-track-transparent">
           {isSidebarOpen && conversations.length > 0 && (
             <h2 className="text-sm font-medium text-muted-foreground mb-2 pl-3">Recent</h2>
           )}
@@ -233,7 +233,7 @@ export default function ChatPage() {
         </div>
 
         {/* Fixed Footer */}
-        <div className="p-4 flex-shrink-0">
+        <div className="px-5 py-4 flex-shrink-0">
           <Button variant="ghost" className={`${!isSidebarOpen && "px-0 justify-center"} gap-2 w-full`} onClick={() => setHelpOpen(true)}>
             <HelpCircleIcon className="h-4 w-4" />
             {isSidebarOpen && "Help"}
