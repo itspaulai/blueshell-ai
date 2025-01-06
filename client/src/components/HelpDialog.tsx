@@ -1,4 +1,3 @@
-
 import {
   Dialog,
   DialogContent,
@@ -18,11 +17,11 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader className="pb-4 border-b">
-          <DialogTitle className="text-2xl text-blue-600">How to Use the App</DialogTitle>
+          <DialogTitle className="text-2xl text-[#0077FF]">How to use Blueshell</DialogTitle>
         </DialogHeader>
         <div className="space-y-8 py-6 px-2">
           <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
-            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+            <h3 className="text-xl font-semibold mb-4 text-[#0077FF] flex items-center gap-2">
               <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">🤖</span>
               AI Model
             </h3>
@@ -38,7 +37,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
           </section>
 
           <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
-            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+            <h3 className="text-xl font-semibold mb-4 text-[#0077FF] flex items-center gap-2">
               <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">💬</span>
               Basic Chat
             </h3>
@@ -54,7 +53,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
           </section>
 
           <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
-            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+            <h3 className="text-xl font-semibold mb-4 text-[#0077FF] flex items-center gap-2">
               <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">📄</span>
               Working with PDFs
             </h3>
@@ -83,7 +82,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
           </section>
 
           <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
-            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+            <h3 className="text-xl font-semibold mb-4 text-[#0077FF] flex items-center gap-2">
               <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">📝</span>
               Managing Conversations
             </h3>
@@ -107,7 +106,7 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
           </section>
 
           <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
-            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+            <h3 className="text-xl font-semibold mb-4 text-[#0077FF] flex items-center gap-2">
               <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">✨</span>
               Additional Features
             </h3>
