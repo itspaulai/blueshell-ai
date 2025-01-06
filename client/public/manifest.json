@@ -1,8 +1,8 @@
 
 {
-  "name": "WebLLM Chat",
-  "short_name": "WebLLM",
-  "description": "Offline-capable AI chat application",
+  "name": "Blushell",
+  "short_name": "Blueshell",
+  "description": "Privacy-friendly AI Assistant",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
