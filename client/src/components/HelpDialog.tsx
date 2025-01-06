@@ -118,6 +118,19 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
             </div>
           </section>
         </div>
+        <DialogFooter className="border-t pt-4">
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = 'mailto:hello@blueshell.com'}
+            >
+              Contact us
+            </Button>
+            <Button onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
