@@ -15,13 +15,16 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>How to Use the App</DialogTitle>
+        <DialogHeader className="pb-4 border-b">
+          <DialogTitle className="text-2xl text-blue-600">How to Use the App</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6 py-4">
-          <section>
-            <h3 className="text-lg font-semibold mb-3">AI Model</h3>
-            <div className="space-y-2 text-sm">
+        <div className="space-y-8 py-6 px-2">
+          <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
+            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+              <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">🤖</span>
+              AI Model
+            </h3>
+            <div className="space-y-3 text-gray-600">
               <p>This app uses a local AI model that runs directly in your browser. Here's what you need to know:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>When you first open the app, the AI model will begin downloading automatically</li>
@@ -32,9 +35,12 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
             </div>
           </section>
 
-          <section>
-            <h3 className="text-lg font-semibold mb-3">Basic Chat</h3>
-            <div className="space-y-2 text-sm">
+          <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
+            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+              <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">💬</span>
+              Basic Chat
+            </h3>
+            <div className="space-y-3 text-gray-600">
               <p>Using the chat interface is straightforward:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>Type your message in the input box at the bottom</li>
@@ -45,9 +51,12 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
             </div>
           </section>
 
-          <section>
-            <h3 className="text-lg font-semibold mb-3">Working with PDFs</h3>
-            <div className="space-y-2 text-sm">
+          <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
+            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+              <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">📄</span>
+              Working with PDFs
+            </h3>
+            <div className="space-y-3 text-gray-600">
               <p className="font-medium mb-2">Loading a PDF:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>Click the "Load PDF" button to upload a PDF document</li>
@@ -71,9 +80,12 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
             </div>
           </section>
 
-          <section>
-            <h3 className="text-lg font-semibold mb-3">Managing Conversations</h3>
-            <div className="space-y-2 text-sm">
+          <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
+            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+              <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">📝</span>
+              Managing Conversations
+            </h3>
+            <div className="space-y-3 text-gray-600">
               <p className="font-medium mb-2">Renaming Conversations:</p>
               <ul className="list-disc pl-6 space-y-2">
                 <li>Click the three dots (⋮) next to any conversation in the sidebar</li>
@@ -92,9 +104,12 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
             </div>
           </section>
 
-          <section>
-            <h3 className="text-lg font-semibold mb-3">Additional Features</h3>
-            <div className="space-y-2 text-sm">
+          <section className="bg-gray-50 rounded-lg p-6 shadow-sm border border-gray-100">
+            <h3 className="text-xl font-semibold mb-4 text-blue-700 flex items-center gap-2">
+              <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">✨</span>
+              Additional Features
+            </h3>
+            <div className="space-y-3 text-gray-600">
               <ul className="list-disc pl-6 space-y-2">
                 <li>The sidebar can be collapsed for more chat space</li>
                 <li>Your chat history is saved automatically</li>
