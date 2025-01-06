@@ -149,9 +149,9 @@ export default function ChatPage() {
         isSidebarOpen ? "w-[320px]" : "w-[75px]"
       } bg-[#f1f4f9] flex flex-col transition-all duration-300 ease-in-out`}>
         {/* Header Section */}
-        <div className="p-4 flex-shrink-0">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className={`text-xl font-semibold pl-3 ${!isSidebarOpen && "hidden"}`}>Blueshell</h1>
+        <div className="px-4 pt-5 pb-2 flex-shrink-0">
+          <div className="flex items-center justify-between mb-5">
+            <h1 className={`text-xl font-semibold ${!isSidebarOpen && "hidden"}`}>Blueshell</h1>
             <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
               <ChevronDownIcon
                 className={`h-4 w-4 transition-transform duration-300 ${
@@ -161,7 +161,7 @@ export default function ChatPage() {
             </Button>
           </div>
           <Button 
-            className={`flex gap-2 mb-4 w-full font-semibold ${!isSidebarOpen && "px-0 justify-center"}`}
+            className={`flex gap-2 mb-6 w-full font-semibold ${!isSidebarOpen && "px-0 justify-center"}`}
             onClick={handleNewChat}
           >
             <PlusIcon className="h-4 w-4" />
