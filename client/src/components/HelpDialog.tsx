@@ -4,7 +4,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 interface HelpDialogProps {
   open: boolean;
