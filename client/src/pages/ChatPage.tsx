@@ -16,29 +16,7 @@ interface Conversation {
   updatedAt: string;
 }
 
-function HelpDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Help</DialogTitle>
-        </DialogHeader>
-        <div className="p-4 space-y-4">
-          {/* Add your help content here */}
-          <p>Welcome to the Blueshell App!</p>
-          <p>This app allows you to create and manage conversations.</p>
-          <p>To create a new conversation, click the "+" button in the sidebar.</p>
-          <p>To rename a conversation, click the "..." menu next to the conversation title.</p>
-          <p>To delete a conversation, click the "..." menu next to the conversation title and select "Delete".</p>
-        </div>
-        <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
+import { HelpDialog } from "@/components/HelpDialog";
 
 export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
