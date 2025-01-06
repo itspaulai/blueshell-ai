@@ -1,4 +1,3 @@
-
 const CACHE_NAME = 'blueshell-cache-v1';
 const urlsToCache = [
   '/',
