@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'webllm-cache-v1';
+const CACHE_NAME = 'blueshell-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
