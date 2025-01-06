@@ -158,7 +158,7 @@ export default function ChatPage() {
             </Button>
           </div>
           <Button 
-            className={`flex gap-2 mb-4 w-full ${!isSidebarOpen && "px-0 justify-center"}`}
+            className={`flex gap-2 mb-4 w-full font-semibold ${!isSidebarOpen && "px-0 justify-center"}`}
             onClick={handleNewChat}
           >
             <PlusIcon className="h-4 w-4" />
