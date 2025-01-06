@@ -56,7 +56,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     try {
       engineRef.current = await webllm.CreateWebWorkerMLCEngine(
         new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
-        "Llama-3.2-3B-Instruct-q4f16_1-MLC",
+        "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
         { initProgressCallback }
       );
       setIsModelLoaded(true);
