@@ -19,7 +19,6 @@ interface ChatContainerProps {
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
-  const [selectedModel, setSelectedModel] = useState("basic"); // Added model selector state
 
   const {
     sendMessage,
@@ -60,21 +59,30 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     };
 
     if (isFirstMessage) {
+      // If no conversation yet, handle the first message
       setPendingMessage(userMessage);
       currentId = await onFirstMessage(content);
       if (!currentId) return;
+
+      // Now that we have the conversation ID, store in DB
       await chatDB.updateConversation(currentId, [userMessage], undefined, true);
       setPendingMessage(null);
       setMessages([userMessage]);
     } else {
+      // Otherwise, just add to existing conversation
       setMessages((prev) => [...prev, userMessage]);
       if (currentId) {
         await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
       }
     }
 
-    setMessageHistory((prev) => [...prev, { role: "user", content }]);
+    // Also push to LLM's messageHistory
+    setMessageHistory((prev) => [
+      ...prev,
+      { role: "user", content } // Enough info for the LLM
+    ]);
 
+    // Prepare a placeholder bot message
     const botMessageId = newMessageId + 1;
     const initialBotMessage: Message = {
       id: botMessageId,
@@ -85,7 +93,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
-      const response = await sendMessage(content, selectedModel); // Pass selectedModel
+      const response = await sendMessage(content);
       if (!response) return;
 
       let fullMessage = "";
@@ -97,6 +105,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         scrollToBottom();
       }
 
+      // Once final text is ready, append to messageHistory
       setMessageHistory((prev) => [...prev, { role: "assistant", content: fullMessage }]);
 
     } catch (error) {
@@ -111,24 +120,32 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     }
   };
 
+  // -- LOAD conversation from DB & sync with LLM context
   useEffect(() => {
     const loadConversation = async () => {
       if (conversationId) {
         const conversation = await chatDB.getConversation(conversationId);
         if (conversation) {
           setMessages(conversation.messages);
-          const loadedHistory = conversation.messages.map((m) => ({
-            role: m.isUser ? ("user" as const) : ("assistant" as const),
-            content: m.content,
-          }));
+
+          // Map DB messages to { role, content } for LLM
+          const loadedHistory: Array<{ role: "system" | "user" | "assistant"; content: string }> =
+            conversation.messages.map((m) => ({
+              role: m.isUser ? ("user" as const) : ("assistant" as const),
+              content: m.content,
+            }));
+
+          // Keep system message if already present
           setMessageHistory((prev) => {
             const systemMsg = prev.find((msg) => msg.role === "system");
             return systemMsg ? [systemMsg, ...loadedHistory] : loadedHistory;
           });
         }
       } else {
+        // If it's a new chat or no conversation
         if (!pendingMessage) {
           setMessages([]);
+          // Reset LLM context to just system (if you want a default system prompt)
           setMessageHistory((prev) => {
             const systemMsg = prev.find((msg) => msg.role === "system");
             return systemMsg ? [systemMsg] : [];
@@ -147,6 +164,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     scrollToBottom();
   }, [messages, currentResponse, conversationId]);
 
+  // Auto-scroll logic
   useEffect(() => {
     const container = contentRef.current;
     if (!container) return;
@@ -165,12 +183,6 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     <div className="flex flex-col h-screen">
       <div className="flex-1 overflow-y-auto px-4" ref={contentRef}>
         <div className="max-w-3xl mx-auto py-6">
-          <div className="mb-4"> {/* Added Model Selector */}
-            <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
-              <option value="basic">Basic AI model (faster)</option>
-              <option value="smart">Smarter AI model (slower)</option>
-            </select>
-          </div>
           {displayMessages.length === 0 && (
             <div className="flex justify-center items-center h-[calc(100vh-200px)]">
               <span className="text-4xl font-bold text-blue-500">Hello</span>
