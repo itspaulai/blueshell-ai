@@ -191,19 +191,19 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
           <SelectContent>
             <SelectGroup>
               <SelectLabel>AI Models</SelectLabel>
-              <SelectItem value="basic">
-                <div className="flex items-center gap-2">
+              <SelectItem value="basic" className="w-full">
+                <div className="flex items-center gap-2 w-full">
                   <span>⚡</span>
-                  <div>
+                  <div className="flex-1 text-left">
                     <div>Basic AI model</div>
                     <div className="text-xs text-muted-foreground">Faster responses</div>
                   </div>
                 </div>
               </SelectItem>
-              <SelectItem value="smart">
-                <div className="flex items-center gap-2">
+              <SelectItem value="smart" className="w-full">
+                <div className="flex items-center gap-2 w-full">
                   <span>🧠</span>
-                  <div>
+                  <div className="flex-1 text-left">
                     <div>Smarter AI model</div>
                     <div className="text-xs text-muted-foreground">Thoughtful responses</div>
                   </div>
