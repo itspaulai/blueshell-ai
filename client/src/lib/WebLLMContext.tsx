@@ -10,7 +10,7 @@ interface Message {
 type WebLLMContextType = {
   isModelLoaded: boolean;
   loadingProgress: string;
-  sendMessage: (message: string, modelType?: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
+  sendMessage: (message: string, modelType: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
   isGenerating: boolean;
   interruptGeneration: () => void;
   messageHistory: Message[];
@@ -48,7 +48,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     },
   ]);
 
-  const engineRef = useRef<webllm.MLCEngineInterface | null>(null);
+  const engineRef = useRef<(webllm.MLCEngineInterface & { dispose: () => Promise<void> }) | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const initializeEngine = useCallback(async (modelType: string) => {

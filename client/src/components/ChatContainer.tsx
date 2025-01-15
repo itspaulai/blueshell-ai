@@ -16,9 +16,10 @@ interface Message {
 interface ChatContainerProps {
   conversationId?: number;
   onFirstMessage: (content: string) => Promise<number | undefined>;
+  initializeEngine?: (modelType: string) => Promise<void>;
 }
 
-export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
+export function ChatContainer({ conversationId, onFirstMessage, initializeEngine }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("basic");
