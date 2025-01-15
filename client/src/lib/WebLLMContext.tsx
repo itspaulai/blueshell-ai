@@ -49,14 +49,18 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const engineRef = useRef<webllm.MLCEngineInterface | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const initializeEngine = useCallback(async () => {
+  const initializeEngine = useCallback(async (modelType: string) => {
     const initProgressCallback = (report: webllm.InitProgressReport) => {
       setLoadingProgress(report.text);
     };
     try {
+      const modelName = modelType === "smart" 
+        ? "Llama-3.2-3B-Instruct-q4f16_1-MLC" 
+        : "Llama-3.2-1B-Instruct-q4f16_1-MLC";
+        
       engineRef.current = await webllm.CreateWebWorkerMLCEngine(
         new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
-        "Llama-3.2-3B-Instruct-q4f16_1-MLC",
+        modelName,
         { initProgressCallback }
       );
       setIsModelLoaded(true);
@@ -66,9 +70,9 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const sendMessage = useCallback(
-    async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
+    async (message: string, modelType: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
       if (!engineRef.current && !isModelLoaded) {
-        await initializeEngine();
+        await initializeEngine(modelType);
       }
       if (!engineRef.current) {
         throw new Error("Engine not initialized");
