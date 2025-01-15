@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
@@ -183,14 +184,34 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   return (
     <div className="flex flex-col h-screen">
       <div className="p-4 border-b">
-        <select 
-          value={selectedModel}
-          onChange={(e) => setSelectedModel(e.target.value)}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-        >
-          <option value="basic">Basic AI model (faster)</option>
-          <option value="smart">Smarter AI model (slower)</option>
-        </select>
+        <Select value={selectedModel} onValueChange={setSelectedModel}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Select model" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>AI Models</SelectLabel>
+              <SelectItem value="basic">
+                <div className="flex items-center gap-2">
+                  <span>⚡</span>
+                  <div>
+                    <div>Basic AI model</div>
+                    <div className="text-xs text-muted-foreground">Faster responses</div>
+                  </div>
+                </div>
+              </SelectItem>
+              <SelectItem value="smart">
+                <div className="flex items-center gap-2">
+                  <span>🧠</span>
+                  <div>
+                    <div>Smarter AI model</div>
+                    <div className="text-xs text-muted-foreground">More thoughtful responses</div>
+                  </div>
+                </div>
+              </SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex-1 overflow-y-auto px-4" ref={contentRef}>
         <div className="max-w-3xl mx-auto py-6">
