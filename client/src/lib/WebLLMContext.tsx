@@ -75,7 +75,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       setLoadingProgress(report.text);
     };
     try {
-      const storedModel = localStorage.getItem('selectedModel') || "Llama-3.2-3B-Instruct-q4f16_1-MLC";
+      const storedModel = localStorage.getItem('selectedModel') || "Llama-3.2-1B-Instruct-q4f16_1-MLC";
       engineRef.current = await webllm.CreateWebWorkerMLCEngine(
         new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
         storedModel,
