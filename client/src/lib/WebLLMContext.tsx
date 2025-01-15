@@ -37,6 +37,25 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPDFLoaded, setIsPDFLoaded] = useState(false);
   const [isPDFLoading, setIsPDFLoading] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(false);
+
+  const reinitializeEngine = async (modelName: string) => {
+    setIsModelLoading(true);
+    setIsModelLoaded(false);
+    engineRef.current = null;
+    try {
+      engineRef.current = await webllm.CreateWebWorkerMLCEngine(
+        new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
+        modelName,
+        { initProgressCallback: (report) => setLoadingProgress(report.text) }
+      );
+      setIsModelLoaded(true);
+    } catch (error) {
+      console.error('Failed to initialize WebLLM:', error);
+    } finally {
+      setIsModelLoading(false);
+    }
+  };
 
   // Start with a default system message
   const [messageHistory, setMessageHistory] = useState<Message[]>([
@@ -216,6 +235,8 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         isPDFLoaded,
         isPDFLoading,
         unloadPDF,
+        reinitializeEngine,
+        isModelLoading,
       }}
     >
       {children}

@@ -22,7 +22,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   const handleModelChange = async (type: ModelType) => {
     const config = MODEL_CONFIGS[type];
     localStorage.setItem('selectedModel', config.modelName);
-    window.location.reload();
+    await reinitializeEngine(config.modelName);
   };
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
@@ -199,6 +199,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
                   : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
               }`}
               onClick={() => handleModelChange(type as ModelType)}
+              disabled={isModelLoading}
             >
               <div className="font-medium">{config.displayName}</div>
               <div className="text-sm text-gray-500">{config.description}</div>
