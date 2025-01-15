@@ -199,12 +199,14 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
                 className="p-2 rounded-lg text-left hover:bg-gray-50 flex flex-col"
                 disabled={isModelLoading}
               >
-                <div className="font-medium">
-                  {MODEL_CONFIGS[Object.entries(MODEL_CONFIGS).find(
-                    ([_, config]) => config.modelName === localStorage.getItem('selectedModel')
-                  )?.[0] as ModelType]?.displayName || MODEL_CONFIGS.smart.displayName}
+                <div className="flex items-center gap-2">
+                  <div className="font-medium">
+                    {MODEL_CONFIGS[Object.entries(MODEL_CONFIGS).find(
+                      ([_, config]) => config.modelName === localStorage.getItem('selectedModel')
+                    )?.[0] as ModelType]?.displayName || MODEL_CONFIGS.smart.displayName}
+                  </div>
+                  <ChevronDown className="h-4 w-4" />
                 </div>
-                <div className="text-sm text-gray-500">Select AI model</div>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-[200px]">
