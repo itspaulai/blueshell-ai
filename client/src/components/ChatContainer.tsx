@@ -1,4 +1,15 @@
-<div className="flex flex-col h-screen">
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+} from "@/components/ui/select"
+
+const ChatContainer = () => {
+  return (
+    <div className="flex flex-col h-screen">
       <div className="py-4 px-4 border-b">
         <Select defaultValue="basic">
           <SelectTrigger className="w-[250px]">
@@ -24,3 +35,7 @@
       </div>
       {/* Rest of the component */}
     </div>
+  )
+}
+
+export { ChatContainer }
