@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Brain, Zap } from "lucide-react";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
@@ -193,7 +194,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
               <SelectLabel>AI Models</SelectLabel>
               <SelectItem value="basic" className="w-full">
                 <div className="flex items-center gap-2 w-full">
-                  <span>⚡</span>
+                  <Zap className="h-4 w-4" />
                   <div className="flex-1 text-left">
                     <div>Basic AI model</div>
                     <div className="text-xs text-muted-foreground">Faster responses</div>
@@ -202,7 +203,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
               </SelectItem>
               <SelectItem value="smart" className="w-full">
                 <div className="flex items-center gap-2 w-full">
-                  <span>🧠</span>
+                  <Brain className="h-4 w-4" />
                   <div className="flex-1 text-left">
                     <div>Smarter AI model</div>
                     <div className="text-xs text-muted-foreground">Thoughtful responses</div>
