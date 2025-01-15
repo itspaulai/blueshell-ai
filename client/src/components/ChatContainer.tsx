@@ -192,7 +192,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="px-4 py-2 border-b">
+      <div className="px-4 py-2">
         <div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
