@@ -216,10 +216,10 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
                   key={type}
                   onClick={() => handleModelChange(type as ModelType)}
                   disabled={isModelLoading}
-                  className="flex flex-col items-start py-2"
+                  className="flex flex-col items-start py-1.5"
                 >
-                  <div className="font-medium">{config.displayName}</div>
-                  <div className="text-sm text-gray-500">{config.description}</div>
+                  <div className="font-medium leading-tight">{config.displayName}</div>
+                  <div className="text-sm text-gray-500 leading-tight">{config.description}</div>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
