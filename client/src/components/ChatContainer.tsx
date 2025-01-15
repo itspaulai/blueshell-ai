@@ -204,7 +204,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
                   <div className="font-medium">
                     {MODEL_CONFIGS[Object.entries(MODEL_CONFIGS).find(
                       ([_, config]) => config.modelName === localStorage.getItem('selectedModel')
-                    )?.[0] as ModelType]?.displayName || MODEL_CONFIGS.smart.displayName}
+                    )?.[0] as ModelType]?.displayName || MODEL_CONFIGS.basic.displayName}
                   </div>
                   <ChevronDown className="h-4 w-4" />
                 </div>
