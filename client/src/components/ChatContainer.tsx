@@ -18,6 +18,7 @@ interface ChatContainerProps {
 
 import { ModelType, MODEL_CONFIGS } from "../types/model";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const handleModelChange = async (type: ModelType) => {
