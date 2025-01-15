@@ -195,18 +195,18 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
               <SelectItem value="basic" className="w-full">
                 <div className="flex items-center gap-2 w-full">
                   <Zap className="h-4 w-4" />
-                  <div className="flex-1 text-left">
+                  <div className="flex-1 text-left space-y-0">
                     <div>Basic AI model</div>
-                    <div className="text-xs text-muted-foreground">Faster responses</div>
+                    <div className="text-xs text-muted-foreground -mt-0.5">Faster responses</div>
                   </div>
                 </div>
               </SelectItem>
               <SelectItem value="smart" className="w-full">
                 <div className="flex items-center gap-2 w-full">
                   <Brain className="h-4 w-4" />
-                  <div className="flex-1 text-left">
+                  <div className="flex-1 text-left space-y-0">
                     <div>Smarter AI model</div>
-                    <div className="text-xs text-muted-foreground">Thoughtful responses</div>
+                    <div className="text-xs text-muted-foreground -mt-0.5">Thoughtful responses</div>
                   </div>
                 </div>
               </SelectItem>
