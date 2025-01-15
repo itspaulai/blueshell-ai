@@ -3,6 +3,7 @@ import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
 import { chatDB } from "@/lib/db";
+import { ModelType, MODEL_CONFIGS } from "@/types/model";
 
 interface Message {
   id: number;
