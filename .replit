@@ -19,7 +19,7 @@ localPort = 5173
 externalPort = 5173
 
 [workflows]
-runButton = "Start Dev Server"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
@@ -43,4 +43,4 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-waitForPort = 5000
+waitForPort = 5173
