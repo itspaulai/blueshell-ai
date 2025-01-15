@@ -19,6 +19,8 @@ type WebLLMContextType = {
   isPDFLoaded: boolean;
   isPDFLoading: boolean;
   unloadPDF: () => void;
+  reinitializeEngine: (modelName: string) => Promise<void>;
+  isModelLoading: boolean;
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);

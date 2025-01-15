@@ -35,6 +35,8 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     interruptGeneration,
     messageHistory,
     setMessageHistory,
+    reinitializeEngine,
+    isModelLoading,
   } = useWebLLM();
 
   const contentRef = useRef<HTMLDivElement>(null);
