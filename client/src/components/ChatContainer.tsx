@@ -205,7 +205,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
                   <span>🧠</span>
                   <div>
                     <div>Smarter AI model</div>
-                    <div className="text-xs text-muted-foreground">More thoughtful responses</div>
+                    <div className="text-xs text-muted-foreground">Thoughtful responses</div>
                   </div>
                 </div>
               </SelectItem>
