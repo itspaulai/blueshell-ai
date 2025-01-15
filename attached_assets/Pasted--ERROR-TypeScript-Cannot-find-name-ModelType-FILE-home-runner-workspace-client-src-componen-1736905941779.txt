@@ -1,0 +1,78 @@
+ ERROR(TypeScript)  Cannot find name 'ModelType'.
+ FILE  /home/runner/workspace/client/src/components/ChatContainer.tsx:182:42
+
+    180 |   const displayMessages = pendingMessage ? [pendingMessage, ...messages] : messages;
+    181 |
+  > 182 |   const handleModelChange = async (type: ModelType) => {
+        |                                          ^^^^^^^^^
+    183 |     const config = MODEL_CONFIGS[type];
+    184 |     localStorage.setItem('selectedModel', config.modelName);
+    185 |     window.location.reload();
+
+ ERROR(TypeScript)  Cannot find name 'MODEL_CONFIGS'.
+ FILE  /home/runner/workspace/client/src/components/ChatContainer.tsx:183:20
+
+    181 |
+    182 |   const handleModelChange = async (type: ModelType) => {
+  > 183 |     const config = MODEL_CONFIGS[type];
+        |                    ^^^^^^^^^^^^^
+    184 |     localStorage.setItem('selectedModel', config.modelName);
+    185 |     window.location.reload();
+    186 |   };
+
+ ERROR(TypeScript)  Cannot find name 'MODEL_CONFIGS'.
+ FILE  /home/runner/workspace/client/src/components/ChatContainer.tsx:192:27
+
+    190 |       <div className="px-4 py-2 border-b">
+    191 |         <div className="max-w-3xl mx-auto flex gap-2">
+  > 192 |           {Object.entries(MODEL_CONFIGS).map(([type, config]) => (
+        |                           ^^^^^^^^^^^^^
+    193 |             <button
+    194 |               key={type}
+    195 |               className={`flex-1 p-2 rounded-lg text-left ${
+
+ ERROR(TypeScript)  'config' is of type 'unknown'.
+ FILE  /home/runner/workspace/client/src/components/ChatContainer.tsx:196:59
+
+    194 |               key={type}
+    195 |               className={`flex-1 p-2 rounded-lg text-left ${
+  > 196 |                 localStorage.getItem('selectedModel') === config.modelName
+        |                                                           ^^^^^^
+    197 |                   ? 'bg-blue-100 border-2 border-blue-500'
+    198 |                   : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+    199 |               }`}
+
+ ERROR(TypeScript)  Cannot find name 'ModelType'.
+ FILE  /home/runner/workspace/client/src/components/ChatContainer.tsx:200:56
+
+    198 |                   : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+    199 |               }`}
+  > 200 |               onClick={() => handleModelChange(type as ModelType)}
+        |                                                        ^^^^^^^^^
+    201 |             >
+    202 |               <div className="font-medium">{config.displayName}</div>
+    203 |               <div className="text-sm text-gray-500">{config.description}</div>
+
+ ERROR(TypeScript)  'config' is of type 'unknown'.
+ FILE  /home/runner/workspace/client/src/components/ChatContainer.tsx:202:45
+
+    200 |               onClick={() => handleModelChange(type as ModelType)}
+    201 |             >
+  > 202 |               <div className="font-medium">{config.displayName}</div>
+        |                                             ^^^^^^
+    203 |               <div className="text-sm text-gray-500">{config.description}</div>
+    204 |             </button>
+    205 |           ))}
+
+ ERROR(TypeScript)  'config' is of type 'unknown'.
+ FILE  /home/runner/workspace/client/src/components/ChatContainer.tsx:203:55
+
+    201 |             >
+    202 |               <div className="font-medium">{config.displayName}</div>
+  > 203 |               <div className="text-sm text-gray-500">{config.description}</div>
+        |                                                       ^^^^^^
+    204 |             </button>
+    205 |           ))}
+    206 |         </div>
+
+[TypeScript] Found 7 errors. Watching for file changes.
