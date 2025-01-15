@@ -41,21 +41,53 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const [isPDFLoading, setIsPDFLoading] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(false);
 
+  const workerRef = useRef<Worker | null>(null);
+  const modelSwitchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const COOLDOWN_PERIOD = 1000; // 1 second cooldown
+
   const reinitializeEngine = async (modelName: string) => {
+    if (isModelLoading) return;
+    
     setIsModelLoading(true);
     setIsModelLoaded(false);
+
+    // Cleanup previous worker and engine
+    if (workerRef.current) {
+      workerRef.current.terminate();
+      workerRef.current = null;
+    }
     engineRef.current = null;
+
+    // Force garbage collection delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     try {
+      // Create new worker
+      workerRef.current = new Worker(
+        new URL('./webllm.worker.ts', import.meta.url),
+        { type: 'module' }
+      );
+
       engineRef.current = await webllm.CreateWebWorkerMLCEngine(
-        new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
+        workerRef.current,
         modelName,
         { initProgressCallback: (report) => setLoadingProgress(report.text) }
       );
+      
       setIsModelLoaded(true);
     } catch (error) {
       console.error('Failed to initialize WebLLM:', error);
+      setLoadingProgress('Failed to load model. Please try again.');
     } finally {
       setIsModelLoading(false);
+      
+      // Set cooldown period
+      if (modelSwitchTimeoutRef.current) {
+        clearTimeout(modelSwitchTimeoutRef.current);
+      }
+      modelSwitchTimeoutRef.current = setTimeout(() => {
+        modelSwitchTimeoutRef.current = null;
+      }, COOLDOWN_PERIOD);
     }
   };
 
