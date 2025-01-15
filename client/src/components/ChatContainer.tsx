@@ -189,13 +189,17 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="basic" className="flex flex-col items-start">
-                <div className="font-medium whitespace-nowrap">Basic AI model</div>
-                <div className="text-xs text-muted-foreground truncate w-full">Faster but less powerful</div>
+              <SelectItem value="basic">
+                <div>
+                  <div className="font-medium">Basic AI model</div>
+                  <div className="text-xs text-muted-foreground">Faster but less powerful</div>
+                </div>
               </SelectItem>
-              <SelectItem value="smart" className="flex flex-col items-start">
-                <div className="font-medium whitespace-nowrap">Smarter AI model</div>
-                <div className="text-xs text-muted-foreground truncate w-full">More powerful but slower</div>
+              <SelectItem value="smart">
+                <div>
+                  <div className="font-medium">Smarter AI model</div>
+                  <div className="text-xs text-muted-foreground">More powerful but slower</div>
+                </div>
               </SelectItem>
             </SelectGroup>
           </SelectContent>
