@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'blueshell-cache-v3';
+const CACHE_NAME = 'blueshell-cache-v4';
 const urlsToCache = [
   '/',
   '/index.html',
