@@ -71,9 +71,13 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const initializeEngine = useCallback(async () => {
+    if (engineRef.current || isModelLoading) return;
+    
+    setIsModelLoading(true);
     const initProgressCallback = (report: webllm.InitProgressReport) => {
       setLoadingProgress(report.text);
     };
+    
     try {
       const storedModel = localStorage.getItem('selectedModel') || "Llama-3.2-1B-Instruct-q4f16_1-MLC";
       engineRef.current = await webllm.CreateWebWorkerMLCEngine(
@@ -84,8 +88,11 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       setIsModelLoaded(true);
     } catch (error) {
       console.error('Failed to initialize WebLLM:', error);
+      setLoadingProgress('Failed to load model. Please try again.');
+    } finally {
+      setIsModelLoading(false);
     }
-  }, []);
+  }, [isModelLoading]);
 
   const sendMessage = useCallback(
     async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {

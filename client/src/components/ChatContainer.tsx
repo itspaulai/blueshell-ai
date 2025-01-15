@@ -108,8 +108,24 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
       if (!response) return;
 
       let fullMessage = "";
+      let batchedContent = "";
+      let lastUpdate = Date.now();
+      
       for await (const chunk of response) {
+        batchedContent += chunk.choices[0]?.delta?.content || "";
         fullMessage += chunk.choices[0]?.delta?.content || "";
+        
+        if (Date.now() - lastUpdate > 50) {
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === botMessageId ? { ...msg, content: fullMessage } : msg))
+          );
+          lastUpdate = Date.now();
+          batchedContent = "";
+          scrollToBottom();
+        }
+      }
+      
+      if (batchedContent) {
         setMessages((prev) =>
           prev.map((msg) => (msg.id === botMessageId ? { ...msg, content: fullMessage } : msg))
         );
@@ -168,12 +184,20 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   }, [conversationId]);
 
   useEffect(() => {
-    if (conversationId && messages.length > 0) {
-      const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
-      chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
-    }
-    scrollToBottom();
-  }, [messages, currentResponse, conversationId]);
+    const updateConversation = async () => {
+      if (conversationId && messages.length > 0) {
+        const updateTimestamp = messages[messages.length - 1].timestamp === new Date().toLocaleTimeString();
+        await chatDB.updateConversation(conversationId, messages, undefined, updateTimestamp);
+      }
+    };
+    
+    const timeoutId = setTimeout(() => {
+      updateConversation();
+      scrollToBottom();
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [messages, conversationId]);
 
   // Auto-scroll logic
   useEffect(() => {
