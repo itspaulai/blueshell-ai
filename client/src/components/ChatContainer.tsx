@@ -24,8 +24,10 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   const [selectedModel, setSelectedModel] = useState<string>("basic");
   
   const handleModelChange = async (value: string) => {
-    setSelectedModel(value);
-    await sendMessage("", value); // Initialize the new model
+    if (value !== selectedModel) {
+      setSelectedModel(value);
+      await initializeEngine(value);
+    }
   };
 
   const {

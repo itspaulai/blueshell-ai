@@ -10,7 +10,7 @@ interface Message {
 type WebLLMContextType = {
   isModelLoaded: boolean;
   loadingProgress: string;
-  sendMessage: (message: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
+  sendMessage: (message: string, modelType?: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
   isGenerating: boolean;
   interruptGeneration: () => void;
   messageHistory: Message[];
@@ -19,6 +19,7 @@ type WebLLMContextType = {
   isPDFLoaded: boolean;
   isPDFLoading: boolean;
   unloadPDF: () => void;
+  initializeEngine: (modelType: string) => Promise<void>;
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
