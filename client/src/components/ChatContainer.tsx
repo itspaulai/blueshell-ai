@@ -19,6 +19,7 @@ interface ChatContainerProps {
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>("basic");
 
   const {
     sendMessage,
@@ -93,7 +94,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
-      const response = await sendMessage(content);
+      const response = await sendMessage(content, selectedModel);
       if (!response) return;
 
       let fullMessage = "";
@@ -181,6 +182,16 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
 
   return (
     <div className="flex flex-col h-screen">
+      <div className="p-4 border-b">
+        <select 
+          value={selectedModel}
+          onChange={(e) => setSelectedModel(e.target.value)}
+          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+        >
+          <option value="basic">Basic AI model (faster)</option>
+          <option value="smart">Smarter AI model (slower)</option>
+        </select>
+      </div>
       <div className="flex-1 overflow-y-auto px-4" ref={contentRef}>
         <div className="max-w-3xl mx-auto py-6">
           {displayMessages.length === 0 && (
