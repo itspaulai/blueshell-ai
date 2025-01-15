@@ -66,7 +66,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const sendMessage = useCallback(
-    async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
+    async (message: string, model: string = "basic"): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
       if (!engineRef.current && !isModelLoaded) {
         await initializeEngine();
       }
@@ -105,7 +105,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
             ...nonSystemMessages,
             { role: "user", content: contextPrompt || message },
           ],
-          temperature: 0.8,
+          temperature: model === "basic" ? 0.7 : 0.9,
           max_tokens: 800,
         };
 
