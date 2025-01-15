@@ -3,7 +3,6 @@ import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
 import { chatDB } from "@/lib/db";
-import { ModelType, MODEL_CONFIGS } from "@/types/model";
 
 interface Message {
   id: number;
@@ -180,32 +179,8 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
 
   const displayMessages = pendingMessage ? [pendingMessage, ...messages] : messages;
 
-  const handleModelChange = async (type: ModelType) => {
-    const config = MODEL_CONFIGS[type];
-    localStorage.setItem('selectedModel', config.modelName);
-    window.location.reload();
-  };
-
   return (
     <div className="flex flex-col h-screen">
-      <div className="px-4 py-2 border-b">
-        <div className="max-w-3xl mx-auto flex gap-2">
-          {Object.entries(MODEL_CONFIGS).map(([type, config]) => (
-            <button
-              key={type}
-              className={`flex-1 p-2 rounded-lg text-left ${
-                localStorage.getItem('selectedModel') === config.modelName
-                  ? 'bg-blue-100 border-2 border-blue-500'
-                  : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-              }`}
-              onClick={() => handleModelChange(type as ModelType)}
-            >
-              <div className="font-medium">{config.displayName}</div>
-              <div className="text-sm text-gray-500">{config.description}</div>
-            </button>
-          ))}
-        </div>
-      </div>
       <div className="flex-1 overflow-y-auto px-4" ref={contentRef}>
         <div className="max-w-3xl mx-auto py-6">
           {displayMessages.length === 0 && (
