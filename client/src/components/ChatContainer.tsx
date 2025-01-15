@@ -3,6 +3,7 @@ import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
 import { chatDB } from "@/lib/db";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Message {
   id: number;
@@ -181,6 +182,29 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
 
   return (
     <div className="flex flex-col h-screen">
+      <div className="py-4 px-4 border-b">
+        <Select defaultValue="basic">
+          <SelectTrigger className="w-[250px]">
+            <SelectValue placeholder="Select a model" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="basic">
+                <div>
+                  <div className="font-medium">Basic AI model</div>
+                  <div className="text-xs text-muted-foreground">Faster but less powerful</div>
+                </div>
+              </SelectItem>
+              <SelectItem value="smart">
+                <div>
+                  <div className="font-medium">Smarter AI model</div>
+                  <div className="text-xs text-muted-foreground">More powerful but slower</div>
+                </div>
+              </SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex-1 overflow-y-auto px-4" ref={contentRef}>
         <div className="max-w-3xl mx-auto py-6">
           {displayMessages.length === 0 && (
