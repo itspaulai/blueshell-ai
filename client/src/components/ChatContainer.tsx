@@ -184,7 +184,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     <div className="flex flex-col h-screen">
       <div className="py-4 px-4 border-b">
         <Select defaultValue="basic">
-          <SelectTrigger className="w-[250px] [&>span]:!whitespace-normal [&>span]:!line-clamp-none">
+          <SelectTrigger className="w-[250px]">
             <SelectValue placeholder="Select a model" />
           </SelectTrigger>
           <SelectContent>
