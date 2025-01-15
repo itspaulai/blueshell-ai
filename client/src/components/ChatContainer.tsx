@@ -210,7 +210,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
                 </div>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-[200px]" side="bottom" align="start" sideOffset={0} alignOffset={-8}>
+            <DropdownMenuContent align="start" className="w-[200px]">
               {Object.entries(MODEL_CONFIGS).map(([type, config]) => (
                 <DropdownMenuItem
                   key={type}
