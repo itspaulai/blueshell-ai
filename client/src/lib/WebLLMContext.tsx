@@ -10,7 +10,7 @@ interface Message {
 type WebLLMContextType = {
   isModelLoaded: boolean;
   loadingProgress: string;
-  sendMessage: (message: string, modelType: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
+  sendMessage: (message: string) => Promise<AsyncIterable<webllm.ChatCompletionChunk>>;
   isGenerating: boolean;
   interruptGeneration: () => void;
   messageHistory: Message[];
@@ -19,7 +19,6 @@ type WebLLMContextType = {
   isPDFLoaded: boolean;
   isPDFLoading: boolean;
   unloadPDF: () => void;
-  initializeEngine: (modelType: string) => Promise<void>;
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -38,7 +37,6 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPDFLoaded, setIsPDFLoaded] = useState(false);
   const [isPDFLoading, setIsPDFLoading] = useState(false);
-  const [currentModel, setCurrentModel] = useState<string | null>(null);
 
   // Start with a default system message
   const [messageHistory, setMessageHistory] = useState<Message[]>([
@@ -48,45 +46,29 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     },
   ]);
 
-  const engineRef = useRef<(webllm.MLCEngineInterface & { dispose: () => Promise<void> }) | null>(null);
+  const engineRef = useRef<webllm.MLCEngineInterface | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const initializeEngine = useCallback(async (modelType: string) => {
-    if (currentModel === modelType && engineRef.current) {
-      return;
-    }
-    
-    setIsModelLoaded(false);
-    if (engineRef.current) {
-      await engineRef.current.dispose();
-      engineRef.current = null;
-    }
-
+  const initializeEngine = useCallback(async () => {
     const initProgressCallback = (report: webllm.InitProgressReport) => {
       setLoadingProgress(report.text);
     };
-
     try {
-      const modelName = modelType === "smart" 
-        ? "Llama-3.2-3B-Instruct-q4f16_1-MLC" 
-        : "Llama-3.2-1B-Instruct-q4f16_1-MLC";
-        
       engineRef.current = await webllm.CreateWebWorkerMLCEngine(
         new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
-        modelName,
+        "Llama-3.2-3B-Instruct-q4f16_1-MLC",
         { initProgressCallback }
       );
       setIsModelLoaded(true);
-      setCurrentModel(modelType);
     } catch (error) {
       console.error('Failed to initialize WebLLM:', error);
     }
   }, []);
 
   const sendMessage = useCallback(
-    async (message: string, modelType: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
+    async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
       if (!engineRef.current && !isModelLoaded) {
-        await initializeEngine(modelType);
+        await initializeEngine();
       }
       if (!engineRef.current) {
         throw new Error("Engine not initialized");

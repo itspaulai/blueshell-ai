@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Brain, Zap } from "lucide-react";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
@@ -16,20 +14,11 @@ interface Message {
 interface ChatContainerProps {
   conversationId?: number;
   onFirstMessage: (content: string) => Promise<number | undefined>;
-  initializeEngine?: (modelType: string) => Promise<void>;
 }
 
-export function ChatContainer({ conversationId, onFirstMessage, initializeEngine }: ChatContainerProps) {
+export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>("basic");
-  
-  const handleModelChange = async (value: string) => {
-    if (value !== selectedModel) {
-      setSelectedModel(value);
-      await initializeEngine(value);
-    }
-  };
 
   const {
     sendMessage,
@@ -104,7 +93,7 @@ export function ChatContainer({ conversationId, onFirstMessage, initializeEngine
     setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
-      const response = await sendMessage(content, selectedModel);
+      const response = await sendMessage(content);
       if (!response) return;
 
       let fullMessage = "";
@@ -192,36 +181,6 @@ export function ChatContainer({ conversationId, onFirstMessage, initializeEngine
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="p-4 border-b">
-        <Select value={selectedModel} onValueChange={handleModelChange}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select model" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>AI Models</SelectLabel>
-              <SelectItem value="basic" className="w-full">
-                <div className="flex items-center gap-2 w-full">
-                  <Zap className="h-4 w-4" />
-                  <div className="flex-1 text-left space-y-0">
-                    <div>Basic AI model</div>
-                    <div className="text-xs text-muted-foreground -mt-0.5">Faster responses</div>
-                  </div>
-                </div>
-              </SelectItem>
-              <SelectItem value="smart" className="w-full">
-                <div className="flex items-center gap-2 w-full">
-                  <Brain className="h-4 w-4" />
-                  <div className="flex-1 text-left space-y-0">
-                    <div>Smarter AI model</div>
-                    <div className="text-xs text-muted-foreground -mt-0.5">Thoughtful responses</div>
-                  </div>
-                </div>
-              </SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
       <div className="flex-1 overflow-y-auto px-4" ref={contentRef}>
         <div className="max-w-3xl mx-auto py-6">
           {displayMessages.length === 0 && (
