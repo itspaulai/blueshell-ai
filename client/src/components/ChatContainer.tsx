@@ -17,6 +17,7 @@ interface ChatContainerProps {
 }
 
 import { ModelType, MODEL_CONFIGS } from "../types/model";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const handleModelChange = async (type: ModelType) => {
@@ -191,22 +192,35 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   return (
     <div className="flex flex-col h-screen">
       <div className="px-4 py-2 border-b">
-        <div className="max-w-3xl mx-auto flex gap-2">
-          {Object.entries(MODEL_CONFIGS).map(([type, config]) => (
-            <button
-              key={type}
-              className={`flex-1 p-2 rounded-lg text-left ${
-                localStorage.getItem('selectedModel') === config.modelName
-                  ? 'bg-blue-100 border-2 border-blue-500'
-                  : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-              }`}
-              onClick={() => handleModelChange(type as ModelType)}
-              disabled={isModelLoading}
-            >
-              <div className="font-medium">{config.displayName}</div>
-              <div className="text-sm text-gray-500">{config.description}</div>
-            </button>
-          ))}
+        <div className="max-w-3xl mx-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="p-2 rounded-lg text-left hover:bg-gray-50 flex flex-col"
+                disabled={isModelLoading}
+              >
+                <div className="font-medium">
+                  {MODEL_CONFIGS[Object.entries(MODEL_CONFIGS).find(
+                    ([_, config]) => config.modelName === localStorage.getItem('selectedModel')
+                  )?.[0] as ModelType]?.displayName || MODEL_CONFIGS.smart.displayName}
+                </div>
+                <div className="text-sm text-gray-500">Select AI model</div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[200px]">
+              {Object.entries(MODEL_CONFIGS).map(([type, config]) => (
+                <DropdownMenuItem
+                  key={type}
+                  onClick={() => handleModelChange(type as ModelType)}
+                  disabled={isModelLoading}
+                  className="flex flex-col items-start py-2"
+                >
+                  <div className="font-medium">{config.displayName}</div>
+                  <div className="text-sm text-gray-500">{config.description}</div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-4" ref={contentRef}>
