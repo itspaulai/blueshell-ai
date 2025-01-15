@@ -3,8 +3,6 @@ import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { useWebLLM } from "@/lib/WebLLMContext";
 import { chatDB } from "@/lib/db";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { Label } from "./ui/label";
 
 interface Message {
   id: number;
@@ -18,13 +16,9 @@ interface ChatContainerProps {
   onFirstMessage: (content: string) => Promise<number | undefined>;
 }
 
-type ModelType = "basic" | "smart";
-
 export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
-  const [selectedModel, setSelectedModel] = useState<ModelType>("smart");
-  const [isModelSwitching, setIsModelSwitching] = useState(false);
 
   const {
     sendMessage,
@@ -34,33 +28,11 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     interruptGeneration,
     messageHistory,
     setMessageHistory,
-    initializeEngine,
   } = useWebLLM();
 
   const contentRef = useRef<HTMLDivElement>(null);
   const [currentResponse, setCurrentResponse] = useState("");
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-
-  useEffect(() => {
-    // Initialize the default model (smart) on component mount
-    initializeEngine("smart");
-  }, [initializeEngine]);
-
-  const handleModelChange = async (value: ModelType) => {
-    if (value !== selectedModel && !isModelSwitching) {
-      try {
-        setIsModelSwitching(true);
-        setSelectedModel(value);
-        await initializeEngine(value);
-      } catch (error) {
-        console.error('Error switching model:', error);
-        // Revert to previous model on error
-        setSelectedModel(selectedModel);
-      } finally {
-        setIsModelSwitching(false);
-      }
-    }
-  };
 
   const scrollToBottom = () => {
     if (contentRef.current && shouldAutoScroll) {
@@ -87,25 +59,30 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     };
 
     if (isFirstMessage) {
+      // If no conversation yet, handle the first message
       setPendingMessage(userMessage);
       currentId = await onFirstMessage(content);
       if (!currentId) return;
 
+      // Now that we have the conversation ID, store in DB
       await chatDB.updateConversation(currentId, [userMessage], undefined, true);
       setPendingMessage(null);
       setMessages([userMessage]);
     } else {
+      // Otherwise, just add to existing conversation
       setMessages((prev) => [...prev, userMessage]);
       if (currentId) {
         await chatDB.updateConversation(currentId, [...messages, userMessage], undefined, true);
       }
     }
 
+    // Also push to LLM's messageHistory
     setMessageHistory((prev) => [
       ...prev,
-      { role: "user", content }
+      { role: "user", content } // Enough info for the LLM
     ]);
 
+    // Prepare a placeholder bot message
     const botMessageId = newMessageId + 1;
     const initialBotMessage: Message = {
       id: botMessageId,
@@ -128,6 +105,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         scrollToBottom();
       }
 
+      // Once final text is ready, append to messageHistory
       setMessageHistory((prev) => [...prev, { role: "assistant", content: fullMessage }]);
 
     } catch (error) {
@@ -142,6 +120,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     }
   };
 
+  // -- LOAD conversation from DB & sync with LLM context
   useEffect(() => {
     const loadConversation = async () => {
       if (conversationId) {
@@ -149,20 +128,24 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
         if (conversation) {
           setMessages(conversation.messages);
 
+          // Map DB messages to { role, content } for LLM
           const loadedHistory: Array<{ role: "system" | "user" | "assistant"; content: string }> =
             conversation.messages.map((m) => ({
               role: m.isUser ? ("user" as const) : ("assistant" as const),
               content: m.content,
             }));
 
+          // Keep system message if already present
           setMessageHistory((prev) => {
             const systemMsg = prev.find((msg) => msg.role === "system");
             return systemMsg ? [systemMsg, ...loadedHistory] : loadedHistory;
           });
         }
       } else {
+        // If it's a new chat or no conversation
         if (!pendingMessage) {
           setMessages([]);
+          // Reset LLM context to just system (if you want a default system prompt)
           setMessageHistory((prev) => {
             const systemMsg = prev.find((msg) => msg.role === "system");
             return systemMsg ? [systemMsg] : [];
@@ -181,6 +164,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     scrollToBottom();
   }, [messages, currentResponse, conversationId]);
 
+  // Auto-scroll logic
   useEffect(() => {
     const container = contentRef.current;
     if (!container) return;
@@ -193,36 +177,10 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
     return () => container.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const displayMessages = messages;
+  const displayMessages = pendingMessage ? [pendingMessage, ...messages] : messages;
 
   return (
     <div className="flex flex-col h-screen">
-      <div className="bg-white border-b border-gray-200 py-4 px-6">
-        <div className="max-w-3xl mx-auto">
-          <RadioGroup
-            value={selectedModel}
-            onValueChange={(value) => handleModelChange(value as ModelType)}
-            className="flex gap-4"
-            defaultValue="smart"
-            disabled={isModelSwitching || isGenerating}
-          >
-            <div className="flex items-start gap-2">
-              <RadioGroupItem value="basic" id="basic" />
-              <Label htmlFor="basic" className="flex flex-col cursor-pointer">
-                <span className="font-medium">Basic AI model</span>
-                <span className="text-sm text-muted-foreground">Faster responses</span>
-              </Label>
-            </div>
-            <div className="flex items-start gap-2">
-              <RadioGroupItem value="smart" id="smart" />
-              <Label htmlFor="smart" className="flex flex-col cursor-pointer">
-                <span className="font-medium">Smarter AI model</span>
-                <span className="text-sm text-muted-foreground">Thoughtful responses</span>
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-      </div>
       <div className="flex-1 overflow-y-auto px-4" ref={contentRef}>
         <div className="max-w-3xl mx-auto py-6">
           {displayMessages.length === 0 && (
@@ -245,7 +203,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
               timestamp={new Date().toLocaleTimeString()}
             />
           )}
-          {(!isModelLoaded || isModelSwitching) && loadingProgress && (
+          {!isModelLoaded && loadingProgress && (
             <div className="text-sm text-muted-foreground">{loadingProgress}</div>
           )}
         </div>
@@ -255,7 +213,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
           <ChatInput
             onSend={handleSendMessage}
             onStop={interruptGeneration}
-            disabled={isGenerating || isModelSwitching || !isModelLoaded}
+            disabled={isGenerating}
             isGenerating={isGenerating}
           />
         </div>

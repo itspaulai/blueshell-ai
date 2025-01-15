@@ -7,10 +7,6 @@ interface Message {
   content: string;
 }
 
-interface WebLLMEngine extends webllm.MLCEngineInterface {
-  dispose?: () => Promise<void>;
-}
-
 type WebLLMContextType = {
   isModelLoaded: boolean;
   loadingProgress: string;
@@ -23,7 +19,6 @@ type WebLLMContextType = {
   isPDFLoaded: boolean;
   isPDFLoading: boolean;
   unloadPDF: () => void;
-  initializeEngine: (modelType: "basic" | "smart") => Promise<void>;
 };
 
 const WebLLMContext = createContext<WebLLMContextType | null>(null);
@@ -43,6 +38,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const [isPDFLoaded, setIsPDFLoaded] = useState(false);
   const [isPDFLoading, setIsPDFLoading] = useState(false);
 
+  // Start with a default system message
   const [messageHistory, setMessageHistory] = useState<Message[]>([
     {
       role: "system",
@@ -50,41 +46,22 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     },
   ]);
 
-  const engineRef = useRef<WebLLMEngine | null>(null);
+  const engineRef = useRef<webllm.MLCEngineInterface | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const initializeEngine = useCallback(async (modelType: "basic" | "smart" = "smart") => {
+  const initializeEngine = useCallback(async () => {
     const initProgressCallback = (report: webllm.InitProgressReport) => {
       setLoadingProgress(report.text);
     };
     try {
-      setIsModelLoaded(false);
-
-      if (engineRef.current) {
-        if (typeof engineRef.current.dispose === 'function') {
-          try {
-            await engineRef.current.dispose();
-          } catch (error) {
-            console.warn('Error disposing engine:', error);
-          }
-        }
-        engineRef.current = null;
-      }
-
-      const modelName = modelType === "smart" 
-        ? "Llama-3.2-3B-Instruct-q4f16_1-MLC" 
-        : "Llama-3.2-1B-Instruct-q4f16_1-MLC";
-
       engineRef.current = await webllm.CreateWebWorkerMLCEngine(
         new Worker(new URL('./webllm.worker.ts', import.meta.url), { type: 'module' }),
-        modelName,
+        "Llama-3.2-3B-Instruct-q4f16_1-MLC",
         { initProgressCallback }
       );
       setIsModelLoaded(true);
     } catch (error) {
       console.error('Failed to initialize WebLLM:', error);
-      setIsModelLoaded(false);
-      throw error;
     }
   }, []);
 
@@ -110,6 +87,9 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // Add user message to history (already done in ChatContainer, but you can keep here if you prefer)
+      // setMessageHistory(prev => [...prev, { role: "user", content: message }]);
+
       try {
         const systemMessage = messageHistory.find((msg) => msg.role === "system");
         const nonSystemMessages = messageHistory.filter((msg) => msg.role !== "system");
@@ -131,12 +111,19 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
 
         const response = await engineRef.current.chat.completions.create(request);
 
+        // Wrap the response generator
         const wrappedResponse = async function* () {
+          let assistantMessage = "";
           try {
             for await (const chunk of response) {
+              assistantMessage += chunk.choices[0]?.delta?.content || "";
               yield chunk;
             }
           } finally {
+            if (assistantMessage) {
+              // Append final assistant message (if not already appended in ChatContainer)
+              // setMessageHistory((prev) => [...prev, { role: "assistant", content: assistantMessage }]);
+            }
             setIsGenerating(false);
           }
         };
@@ -157,6 +144,23 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     }
   }, [isGenerating]);
 
+  // -----------------------
+  // REMOVED the code that reset messageHistory on model load
+  // (We do NOT want to clear prior messages now!)
+  // -----------------------
+  /*
+  useEffect(() => {
+    if (isModelLoaded) {
+      setMessageHistory([
+        {
+          role: "system",
+          content: "You are a helpful, respectful and honest assistant. Always be direct and concise in your responses.",
+        },
+      ]);
+    }
+  }, [isModelLoaded]);
+  */
+
   const initializePDFContext = async (file: File) => {
     try {
       setIsPDFLoading(true);
@@ -170,6 +174,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
       await pdfEmbeddingHandler.addDocument(textChunks);
 
       setIsPDFLoaded(true);
+      // Optionally inform the user that a PDF is loaded
       setMessageHistory((prev) => [
         ...prev,
         {
@@ -187,7 +192,9 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
 
   const unloadPDF = useCallback(() => {
     setIsPDFLoaded(false);
+    // Remove PDF context from LLM if desired
     pdfEmbeddingHandler.clearDocument();
+    // Keep the system message, remove user/assistant lines
     setMessageHistory((prev) => {
       const systemMsg = prev.find((msg) => msg.role === "system");
       return systemMsg ? [systemMsg] : [];
@@ -208,7 +215,6 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         isPDFLoaded,
         isPDFLoading,
         unloadPDF,
-        initializeEngine,
       }}
     >
       {children}
