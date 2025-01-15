@@ -82,14 +82,10 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const initModel = useCallback(async (modelType: string) => {
-    await initializeEngine(modelType);
-  }, []);
-
   const sendMessage = useCallback(
-    async (message: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
-      if (!engineRef.current || !isModelLoaded) {
-        throw new Error("Model not initialized");
+    async (message: string, modelType: string): Promise<AsyncIterable<webllm.ChatCompletionChunk>> => {
+      if (!engineRef.current && !isModelLoaded) {
+        await initializeEngine(modelType);
       }
       if (!engineRef.current) {
         throw new Error("Engine not initialized");
@@ -228,7 +224,6 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         isModelLoaded,
         loadingProgress,
         sendMessage,
-        initModel,
         isGenerating,
         interruptGeneration,
         messageHistory,
