@@ -22,6 +22,11 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("basic");
+  
+  const handleModelChange = async (value: string) => {
+    setSelectedModel(value);
+    await sendMessage("", value); // Initialize the new model
+  };
 
   const {
     sendMessage,
@@ -185,7 +190,7 @@ export function ChatContainer({ conversationId, onFirstMessage }: ChatContainerP
   return (
     <div className="flex flex-col h-screen">
       <div className="p-4 border-b">
-        <Select value={selectedModel} onValueChange={setSelectedModel}>
+        <Select value={selectedModel} onValueChange={handleModelChange}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Select model" />
           </SelectTrigger>

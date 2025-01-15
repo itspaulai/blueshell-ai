@@ -37,6 +37,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPDFLoaded, setIsPDFLoaded] = useState(false);
   const [isPDFLoading, setIsPDFLoading] = useState(false);
+  const [currentModel, setCurrentModel] = useState<string | null>(null);
 
   // Start with a default system message
   const [messageHistory, setMessageHistory] = useState<Message[]>([
@@ -50,9 +51,20 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const initializeEngine = useCallback(async (modelType: string) => {
+    if (currentModel === modelType && engineRef.current) {
+      return;
+    }
+    
+    setIsModelLoaded(false);
+    if (engineRef.current) {
+      await engineRef.current.dispose();
+      engineRef.current = null;
+    }
+
     const initProgressCallback = (report: webllm.InitProgressReport) => {
       setLoadingProgress(report.text);
     };
+
     try {
       const modelName = modelType === "smart" 
         ? "Llama-3.2-3B-Instruct-q4f16_1-MLC" 
@@ -64,6 +76,7 @@ export function WebLLMProvider({ children }: { children: ReactNode }) {
         { initProgressCallback }
       );
       setIsModelLoaded(true);
+      setCurrentModel(modelType);
     } catch (error) {
       console.error('Failed to initialize WebLLM:', error);
     }
