@@ -4,6 +4,10 @@ A web application that runs an AI model directly in your browser, featuring PDF 
 
 I offer paid versions of my code to support my work and provide additional value to users: https://blueshellai.com
 
+## App
+
+The simplest option to use Blueshell is with the app at [blueshellai.com](https://blueshellai.com)
+
 ## Features
 
 - 🤖 **Local AI Model**: Runs entirely in your browser for privacy and offline functionality
