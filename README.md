@@ -1,4 +1,3 @@
-
 # Blueshell - Local Browser AI Chat with PDF Support
 
 A web application that runs an AI model directly in your browser, featuring PDF document analysis and chat functionality. Built with React, TypeScript, and TailwindCSS.
@@ -11,44 +10,6 @@ A web application that runs an AI model directly in your browser, featuring PDF 
 - 🎨 **Modern UI**: Built with Radix UI components and TailwindCSS
 - 💾 **Persistent Storage**: Automatically saves chat history
 - 📱 **Responsive Design**: Works on desktop and mobile devices
-
-## Getting Started
-
-1. Clone the project in Replit
-2. Install dependencies:
-```bash
-npm install
-```
-3. Start the development server:
-```bash
-npm run dev
-```
-
-The application will be available at the URL provided by Replit.
-
-## Project Structure
-
-```
-├── client/                # Frontend React application
-│   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── hooks/       # Custom React hooks
-│   │   ├── lib/         # Utility functions and workers
-│   │   ├── pages/       # Page components
-│   │   └── types/       # TypeScript type definitions
-├── server/               # Backend Express server
-│   ├── routes.ts        # API routes
-│   └── index.ts         # Server configuration
-└── db/                  # Database schema and configuration
-```
-
-## Technology Stack
-
-- **Frontend**: React, TypeScript, TailwindCSS, Radix UI
-- **Backend**: Express.js
-- **Database**: PostgreSQL with Drizzle ORM
-- **AI**: Web-LLM for browser-based inference
-- **PDF Processing**: PDF.js
 
 ## Features in Detail
 
@@ -68,17 +29,17 @@ The application will be available at the URL provided by Replit.
 - Rename and organize conversations
 - Collapsible sidebar for better space management
 
-## Development
-
-The project uses Vite for development and building. Main scripts:
-
-- `npm run dev`: Start development server
-- `npm run build`: Build for production
-- `npm run check`: Type checking with TypeScript
-
 ## License
 
-MIT
+All Rights Reserved
+
+This software is proprietary and confidential. No part of this software, including 
+source code, documentation, or any related materials may be used, copied, modified,
+merged, published, distributed, sublicensed, and/or sold without explicit written 
+permission from the copyright holder.
+
+Unauthorized copying, modification, or distribution of this software, via any medium,
+is strictly prohibited and will be prosecuted to the fullest extent of the law.
 
 ## Contact
 
