@@ -2,11 +2,11 @@
 
 A web application that runs an AI model directly in your browser, featuring PDF document analysis and chat functionality.
 
-I offer paid versions of my code to support my work and provide additional value to users: https://blueshellai.com
-
 ## App
 
 The simplest option to use Blueshell is with the app at [blueshellai.com](https://blueshellai.com)
+
+I offer paid versions of my code to support my work and provide additional value to users.
 
 ## Features
 
