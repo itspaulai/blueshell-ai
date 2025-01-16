@@ -1,15 +1,16 @@
 # Blueshell - Local Browser AI Chat with PDF Support
 
-A web application that runs an AI model directly in your browser, featuring PDF document analysis and chat functionality. Built with React, TypeScript, and TailwindCSS.
+A web application that runs an AI model directly in your browser, featuring PDF document analysis and chat functionality.
+
+I offer paid versions of my code to support my work and provide additional value to users: https://blueshellai.com
 
 ## Features
 
 - 🤖 **Local AI Model**: Runs entirely in your browser for privacy and offline functionality
 - 📄 **PDF Analysis**: Upload and analyze PDF documents
 - 💬 **Chat Interface**: Natural conversation with AI about general topics and PDF content
-- 🎨 **Modern UI**: Built with Radix UI components and TailwindCSS
 - 💾 **Persistent Storage**: Automatically saves chat history
-- 📱 **Responsive Design**: Works on desktop and mobile devices
+- 📱 **Responsive Design**: Works on Windows, macOS, Chrome OS with Chrome and Edge browsers
 
 ## Features in Detail
 
@@ -31,16 +32,4 @@ A web application that runs an AI model directly in your browser, featuring PDF 
 
 ## License
 
-All Rights Reserved
-
-This software is proprietary and confidential. No part of this software, including 
-source code, documentation, or any related materials may be used, copied, modified,
-merged, published, distributed, sublicensed, and/or sold without explicit written 
-permission from the copyright holder.
-
-Unauthorized copying, modification, or distribution of this software, via any medium,
-is strictly prohibited and will be prosecuted to the fullest extent of the law.
-
-## Contact
-
-For support or inquiries, use the contact button within the application's help dialog.
+AGPL-3.0 license
